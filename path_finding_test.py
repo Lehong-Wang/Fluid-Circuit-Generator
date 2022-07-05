@@ -693,6 +693,7 @@ class Grid:
 
 
 
+
 # Disable
 def blockPrint():
     sys.stdout = open(os.devnull, 'w')
@@ -700,6 +701,70 @@ def blockPrint():
 # Restore
 def enablePrint():
     sys.stdout = sys.__stdout__
+
+
+
+
+
+def make_pipe(name, dot_list):
+  if (len(dot_list) < 2):
+    print(f"Dot list {dot_list} too short")
+    return
+
+  curve_data = bpy.data.curves.new(name, type = "CURVE")
+  curve_data.dimensions = "3D"
+
+  polyline = curve_data.splines.new("POLY")
+  polyline.points.add(len(dot_list)-1)
+  for i, coord in enumerate(dot_list):
+    x,y,z = coord
+    polyline.points[i].co = (x,y,z,1)
+  
+  curve_object = bpy.data.objects.new(name, curve_data)
+  bpy.context.collection.objects.link(curve_object)
+
+  curve_object.data.bevel_depth = .2
+  curve_object.data.bevel_resolution = 2
+
+  curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = .3
+
+
+
+def make_junction(coord, connection_list):
+  bpy.ops.mesh.primitive_cube_add(size = .7)
+  cube = bpy.context.active_object
+  cube.location = coord
+  for connection in connection_list:
+    bpy.ops.mesh.primitive_cube_add(size = 1)
+    connection_cube = bpy.context.active_object
+    connection_cube.location = tuple(map(lambda a,b: (a+b)/2, coord, connection))
+    connection_cube.scale = (.5,.5,.5)
+
+
+
+def make_everything(grid):
+  pipe_list = []
+  junction_list = []
+  junction_connection_list = []
+
+  for key,value in grid.saved_path.items():
+    this_pipe = list(map(lambda a: a.coord, value))
+    pipe_list.append(this_pipe)
+  
+  for key,value in grid.saved_junction.items():
+    this_junction = [key.coord, list(map(lambda a: a.coord, value))]
+    junction_list.append(this_junction)
+
+  for i,pipe in enumerate(pipe_list):
+    make_pipe(f"Pipe{i}", pipe)
+  
+  for i,junction_struct in enumerate(junction_list):
+    make_junction(junction_struct[0], junction_struct[1])
+
+
+
+
+
 
 
 
@@ -753,6 +818,7 @@ if __name__ == '__main__':
   
   # print(grid.saved_path)
 
+  make_everything(grid)
 
 
     
