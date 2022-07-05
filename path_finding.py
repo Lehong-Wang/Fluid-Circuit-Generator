@@ -4,7 +4,7 @@ import bpy
 import sys, os
 
 
-###############################  Node Class  ##################################
+#####################################  Node Class  ###################################
 
 class Node:
 
@@ -177,10 +177,12 @@ class Node:
     self.H = float("inf")
     self.last_visited = None
     self.visited = False
+    self.blocked_neighbors = []
+    self.update_neighbors()
 
 
 
-###############################  Grid Class  #################################
+#####################################  Grid Class  #########################################
 
 class Grid:
   # singleton design pattern
@@ -195,8 +197,12 @@ class Grid:
       self.dimention = dimention
       self.node_grid = []
       self.node_grid = self.make_grid(self)
+
       # dictionary of all the path 
+      # {(start_node, end_node) : path_node_list}
       self.saved_path = {}
+
+      self.saved_junction = {}
 
     return self._instance
 
@@ -213,6 +219,9 @@ class Grid:
         Y_list.append(Z_list)
       X_list.append(Y_list)
     return X_list
+
+
+  ########################################  path finding  ########################################
 
   # A* path finding
   def path_finding(self, start_coord, end_coord):
@@ -294,6 +303,8 @@ class Grid:
     return path_node_list
 
 
+  #########################################  clean up  ############################################
+
   # reset grid for next path finding
   def reset_grid(self):
     for x in range(len(self.node_grid)):
@@ -306,7 +317,33 @@ class Grid:
       for node in this_saved_path:
         node.visited = True
         # print(f"Node {node.coord} is visited")
+    self.cut_all_crossover()
     print(f"Grid Reset")
+
+
+  def delete_path(self, start_coord, end_coord):
+    start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
+    end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
+    key_to_delete = None
+    path_to_delete = None
+    for key,value in self.saved_path.items():
+      if start_node in key and end_node in key:
+        key_to_delete = key
+        path_to_delete = value
+
+    if key_to_delete is None:
+      print(f"Error: Path {start_node.coord}-{end_node.coord} don't exist in saved_path")
+      return
+
+    path_coord_list = []
+    for node in path_to_delete:
+      path_coord_list.append(node.coord)
+    print(f"Deleted path from {key_to_delete[0].coord} to {key_to_delete[1].coord}")
+    print(f"Path: {path_coord_list}")
+    self.saved_path.pop(key_to_delete)
+    self.reset_grid()
+    return
+
 
   # cut all the crossing/ half crossing connections
   def cut_all_crossover(self):
@@ -419,6 +456,261 @@ class Grid:
     return
 
 
+  #####################################  junction  ###########################
+  
+  # kind of jump table to determin what to do
+  def add_path(self, start_coord, end_coord):
+    print("\n")
+    print(f"Adding a new path from {start_coord} to {end_coord}")
+    start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
+    end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
+
+    past_end_node_list = []
+    for key in self.saved_path:
+      past_end_node_list.append(key[0])
+      past_end_node_list.append(key[1])
+    
+    start_node_in_list = bool(past_end_node_list.count(start_node))
+    end_node_in_list = bool(past_end_node_list.count(end_node))
+
+    if not (start_node_in_list or end_node_in_list):
+      print(f"Both Node {start_node.coord}, {end_node.coord} are new, create new path")
+      return self.path_finding(start_node.coord, end_node.coord)
+
+    if start_node_in_list and not end_node_in_list:      
+      print(f"Node {start_node.coord} is end for other tubing, create junction")
+      return self.create_junction_path(end_node.coord, start_node.coord)
+
+    if end_node_in_list and not start_node_in_list:      
+      print(f"Node {end_node.coord} is end for other tubing, create junction")
+      return self.create_junction_path(start_node.coord, end_node.coord)
+
+    if start_node_in_list and end_node_in_list: 
+      duplicate = False
+      for end_point_tuple in self.saved_path:
+        duplicate |= (start_node in end_point_tuple) and (end_node in end_point_tuple)
+      
+      if duplicate:
+        print(f"Error: Path from {start_node.coord} to {end_node.coord} already exists")
+        print("Nothing Added")
+        return []
+
+      print(f"Both Node {start_node.coord}, {end_node.coord} are end for other tubing, bridge two tubes")
+      return self.create_bridge_path(start_node.coord, end_node.coord)
+
+
+
+  # start node is free, end node is past_end
+  def create_junction_path(self, start_coord, end_coord):
+    print(f"Looking for joinction path from {start_coord}(new) to {end_coord}")
+    start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
+    end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
+
+    past_end_node_list = []
+    for key in self.saved_path:
+      past_end_node_list.append(key[0])
+      past_end_node_list.append(key[1])
+    
+    if past_end_node_list.count(end_node) == 0:
+      print(f"Error: End coord {end_node.coord} is not a existing path end")
+      return []
+
+    if start_node.visited:
+      print(f"Error: Start Node {start_node.coord} is already in use")
+      return []
+    
+    # if already a junction TODO
+
+    original_path_start_node = None
+    original_path_end_node = None
+    path_to_join = []
+    for key, value in self.saved_path.items():
+      if end_node in key:
+        original_path_start_node, original_path_end_node = key
+        path_to_join = value
+    if len(path_to_join) < 3:
+      print(f"Error: Path {list(map(lambda a: a.coord, path_to_join))} is too short to be joined")
+
+
+    distance = float("inf")
+    junction_node = None
+    for node in path_to_join[1:-1]:
+      dest_x, dest_y, dest_z = node.coord
+      this_x, this_y, this_z = start_node.coord
+      dis = math.sqrt((dest_x - this_x)**2 + (dest_y - this_y)**2 + (dest_z - this_z)**2)
+      if dis < distance:
+        distance = dis
+        junction_node = node
+
+    print(f"Node {junction_node.coord} has the shortest distance")
+
+    junction_node.visited = False
+    new_juction_path = self.path_finding(start_node.coord, junction_node.coord)
+
+    # this is not going to happen because we create new path every junction
+    if junction_node in self.saved_junction:
+      print(f"Node {junction_node.coord} is already a junction")
+      self.saved_junction[junction_node][0].append(start_node)
+      self.saved_junction[junction_node][1].append(new_juction_path[-2])
+      return new_juction_path
+
+    connection_nodes = self.split_path((original_path_start_node, original_path_end_node), junction_node)
+    # index = path_to_join.index(junction_node)
+    # new_path_start_junction = path_to_join[0:index+1]
+    # new_path_junction_end = path_to_join[index:len(path_to_join)+1]
+
+    # self.saved_path[(original_path_start_node, junction_node)] = new_path_start_junction
+    # self.saved_path[(junction_node, original_path_end_node)] = new_path_junction_end 
+    # self.delete_path(original_path_start_node.coord, original_path_end_node.coord)
+    # # save junction
+    start_junction_connect_node = connection_nodes[0]
+    junction_end_connect_node = connection_nodes[1]
+    new_jusction_connect_node = new_juction_path[-2]
+
+    self.saved_junction[junction_node] = \
+      [[original_path_start_node, original_path_end_node, start_node],
+      [start_junction_connect_node, junction_end_connect_node, new_jusction_connect_node]]
+    print(f"Junction Added: {junction_node.coord}")
+    print(f"End Nodes: {[original_path_start_node.coord, original_path_end_node.coord, start_node.coord]}")
+    print(f"Connection points: {[start_junction_connect_node.coord, junction_end_connect_node.coord, new_jusction_connect_node.coord]}")
+    return new_juction_path
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  def create_bridge_path(self, start_coord, end_coord):
+    print(f"Looking for bridging between path: {start_coord}(one path) to {end_coord}(another path)")
+    start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
+    end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
+
+    past_end_node_list = []
+    for key in self.saved_path:
+      past_end_node_list.append(key[0])
+      past_end_node_list.append(key[1])
+    if past_end_node_list.count(start_node) == 0:
+      print(f"Error: End coord {start_node.coord} is not a existing path end")
+      return []   
+    if past_end_node_list.count(end_node) == 0:
+      print(f"Error: End coord {end_node.coord} is not a existing path end")
+      return []
+    
+    start_bridge_path = None
+    end_bridge_path = None
+    start_bridge_key = None
+    end_bridge_key = None
+    for key,value in self.saved_path.items():
+      if start_node in key:
+        start_bridge_path = value
+        start_bridge_key = key
+      if end_node in key:
+        end_bridge_path = value
+        end_bridge_key = key
+    if start_bridge_path is end_bridge_path:
+      print(f"Error: Path from {start_node.coord} to {end_node.coord} already exists")
+      print("Nothing Added")   
+      return []
+    
+    print(f"Start Node {start_node.coord} -> Path {list(map(lambda a: a.coord, start_bridge_path))}")
+    print(f"End Node {end_node.coord} -> Path {list(map(lambda a: a.coord, end_bridge_path))}")
+    if len(start_bridge_path) < 3 or len(end_bridge_path) < 3:
+        print(f"Error: Path is too short to be joined")
+        return []
+
+    distance = float("inf")
+    start_bridge_node = None
+    end_bridge_node = None
+    for from_node in start_bridge_path[1:-1]:
+      for dest_node in end_bridge_path[1:-1]:
+        f_x,f_y,f_z = from_node.coord
+        d_x,d_y,d_z = dest_node.coord
+        dis = math.sqrt((f_x - d_x)**2 + (f_y - d_y)**2 + (f_z - d_z)**2)
+        if dis < distance:
+          distance = dis
+          start_bridge_node = from_node
+          end_bridge_node = dest_node
+    print(f"Node {start_bridge_node.coord} to Node {end_bridge_node.coord} has the shortest distance")
+
+    start_bridge_node.visited = False
+    end_bridge_node.visited = False
+    new_bridge_path = self.path_finding(start_bridge_node.coord, end_bridge_node.coord)
+    new_start_bridge_connection_node = new_bridge_path[1]
+    new_end_bridge_connection_node = new_bridge_path[-2]
+
+    start_bridge_connection_nodes = self.split_path(start_bridge_key, start_bridge_node)
+    end_bridge_connection_nodes = self.split_path(end_bridge_key, end_bridge_node)
+    start_bridge_connection_nodes.append(new_start_bridge_connection_node)
+    end_bridge_connection_nodes.append(new_end_bridge_connection_node)
+    start_bridge_end_node_list = list(start_bridge_key)
+    start_bridge_end_node_list.append(new_bridge_path[-1])
+    end_bridge_end_node_list = list(end_bridge_key)
+    end_bridge_end_node_list.append(new_bridge_path[0])
+    
+    self.saved_junction[start_bridge_node] = \
+      [start_bridge_end_node_list, start_bridge_connection_nodes]
+    print(f"Junction Added: {start_bridge_node.coord}")
+    print(f"End Nodes: {list(map(lambda a: a.coord, start_bridge_end_node_list))}")
+    print(f"Connection points: {list(map(lambda a: a.coord, start_bridge_connection_nodes))}")
+    self.saved_junction[end_bridge_node] = \
+      [end_bridge_end_node_list, end_bridge_connection_nodes]
+    print(f"Junction Added: {end_bridge_node.coord}")
+    print(f"End Nodes: {list(map(lambda a: a.coord, end_bridge_end_node_list))}")
+    print(f"Connection points: {list(map(lambda a: a.coord, end_bridge_connection_nodes))}")
+    return new_bridge_path
+
+
+
+
+
+  def split_path(self, path_key, split_node):
+    print(f"Spliting path between {list(map(lambda a: a.coord, path_key))} with Node {split_node.coord}")
+    start_node = path_key[0]
+    end_node = path_key[1]
+    path_to_split = None
+    for key,value in self.saved_path.items():
+      if key == path_key:
+        if split_node not in value:
+          print(f"Error: Split Node {split_node.coord} is not in path {list(map(lambda a: a.coord, key))}")
+          return
+        path_to_split = value
+
+    index = path_to_split.index(split_node)
+    new_path_start_split = path_to_split[0:index+1]
+    new_path_split_end = path_to_split[index:len(path_to_split)+1]
+
+    self.saved_path[(start_node, split_node)] = new_path_start_split
+    self.saved_path[(split_node, end_node)] = new_path_split_end 
+    self.delete_path(start_node.coord, end_node.coord)
+    start_connection_node = path_to_split[index-1]
+    end_connection_node = path_to_split[index+1]
+    return [start_connection_node, end_connection_node]
+
+  
+
+
+
+
+
 
 
 
@@ -443,16 +735,22 @@ if __name__ == '__main__':
 
   # blockPrint()
   # node = Node((1,2),(1,3))
-  grid = Grid((50,50,10))
+  grid = Grid((10,10,5))
   # print(node)
   # print(node.coord)
   # print(node.neighbors)
 
-  path1 = grid.path_finding((0,0,0),(50,50,0))
-  path2 = grid.path_finding((50,0,0),(0,50,0))
-  path3 = grid.path_finding((10,0,0),(3,50,0))
-  path4 = grid.path_finding((14,0,1),(4,10,0))
-  path5 = grid.path_finding((16,0,0),(6,50,0))
+  path1 = grid.add_path((0,0,0),(0,10,0))
+  path2 = grid.add_path((10,10,0),(10,0,0))
+  # path3 = grid.add_path((10,0,0),(3,10,0))
+  # path4 = grid.add_path((1,0,1),(4,10,0))
+  # path5 = grid.add_path((6,0,0),(1,10,5))
+  # path6 = grid.add_path((6,0,0),(10,10,0))
+  # path7 = grid.add_path((6,8,2),(10,10,0))
+  # path8 = grid.add_path((7,7,0),(10,10,0))
+  # path9 = grid.add_path((0,10,0),(10,10,0))
+  # path10 = grid.add_path((10,0,0),(10,10,0))
+  path11 = grid.add_path((0,0,0), (10,0,0))
 
   # do bottom -> top
 
@@ -465,6 +763,7 @@ if __name__ == '__main__':
 
   # print(grid.saved_path)
 
+  print("\n")
   path = grid.saved_path
   for key, value in path.items():
     path_coord = []
@@ -475,6 +774,16 @@ if __name__ == '__main__':
       key_coord.append(node.coord)
     print("Saved Path:")
     print(key_coord,":", path_coord)
+  
+  for key,value in grid.saved_junction.items():
+    end_node_list = value[0]
+    end_connection_list = value[1]
+    print("\n")
+    print(f"Junction: {key.coord}")
+    print(f"End Nodes: {list(map(lambda a: a.coord, end_node_list))}")
+    print(f"Connection points: {list(map(lambda a: a.coord, end_connection_list))}")
+  
+  # print(grid.saved_path)
 
 
     
