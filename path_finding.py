@@ -335,14 +335,38 @@ class Grid:
       print(f"Error: Path {start_node.coord}-{end_node.coord} don't exist in saved_path")
       return
 
-    path_coord_list = []
-    for node in path_to_delete:
-      path_coord_list.append(node.coord)
+
     print(f"Deleted path from {key_to_delete[0].coord} to {key_to_delete[1].coord}")
-    print(f"Path: {path_coord_list}")
+    print(f"Path: {list(map(lambda a: a.coord, path_to_delete))}")
     self.saved_path.pop(key_to_delete)
+
+    for key,value in self.saved_junction.items():
+      if start_node is key:
+        print(f"Start Node {start_node.coord} is a junction")
+        self.delete_junction_connection(start_node, path_to_delete[1])
+      if end_node is key:
+        print(f"Start Node {end_node.coord} is a junction")
+        self.delete_junction_connection(end_node, path_to_delete[-2])
+
     self.reset_grid()
     return
+
+
+  def delete_junction_connection(self, junction_node, connection_node):
+    print(f"Deleting junction {junction_node.coord} connection {connection_node.coord}")
+    for key, value in self.saved_junction.items():
+      if key is junction_node:
+        if connection_node in value:
+          print("Junction and Connection found")
+          value.remove(connection_node)
+          if len(value) < 2:
+            print("Error: Junction have less than 2 connections")
+            return
+        print(f"Error: Connection Not Exist in connection list: {list(map(lambda a: a.coord, value))}")
+        return
+    print(f"Error: Junction Not Exist")
+
+        
 
 
   # cut all the crossing/ half crossing connections
@@ -519,8 +543,6 @@ class Grid:
       print(f"Error: Start Node {start_node.coord} is already in use")
       return []
     
-    # if already a junction TODO
-
     original_path_start_node = None
     original_path_end_node = None
     path_to_join = []
@@ -531,7 +553,6 @@ class Grid:
     if len(path_to_join) < 3:
       print(f"Error: Path {list(map(lambda a: a.coord, path_to_join))} is too short to be joined")
 
-
     distance = float("inf")
     junction_node = None
     for node in path_to_join[1:-1]:
@@ -541,7 +562,6 @@ class Grid:
       if dis < distance:
         distance = dis
         junction_node = node
-
     print(f"Node {junction_node.coord} has the shortest distance")
 
     junction_node.visited = False
@@ -550,52 +570,19 @@ class Grid:
     # this is not going to happen because we create new path every junction
     if junction_node in self.saved_junction:
       print(f"Node {junction_node.coord} is already a junction")
-      self.saved_junction[junction_node][0].append(start_node)
-      self.saved_junction[junction_node][1].append(new_juction_path[-2])
+      self.saved_junction[junction_node].append(new_juction_path[-2])
       return new_juction_path
 
     connection_nodes = self.split_path((original_path_start_node, original_path_end_node), junction_node)
-    # index = path_to_join.index(junction_node)
-    # new_path_start_junction = path_to_join[0:index+1]
-    # new_path_junction_end = path_to_join[index:len(path_to_join)+1]
-
-    # self.saved_path[(original_path_start_node, junction_node)] = new_path_start_junction
-    # self.saved_path[(junction_node, original_path_end_node)] = new_path_junction_end 
-    # self.delete_path(original_path_start_node.coord, original_path_end_node.coord)
-    # # save junction
     start_junction_connect_node = connection_nodes[0]
     junction_end_connect_node = connection_nodes[1]
     new_jusction_connect_node = new_juction_path[-2]
 
     self.saved_junction[junction_node] = \
-      [[original_path_start_node, original_path_end_node, start_node],
-      [start_junction_connect_node, junction_end_connect_node, new_jusction_connect_node]]
+      [start_junction_connect_node, junction_end_connect_node, new_jusction_connect_node]
     print(f"Junction Added: {junction_node.coord}")
-    print(f"End Nodes: {[original_path_start_node.coord, original_path_end_node.coord, start_node.coord]}")
     print(f"Connection points: {[start_junction_connect_node.coord, junction_end_connect_node.coord, new_jusction_connect_node.coord]}")
     return new_juction_path
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   
 
@@ -634,7 +621,7 @@ class Grid:
     print(f"Start Node {start_node.coord} -> Path {list(map(lambda a: a.coord, start_bridge_path))}")
     print(f"End Node {end_node.coord} -> Path {list(map(lambda a: a.coord, end_bridge_path))}")
     if len(start_bridge_path) < 3 or len(end_bridge_path) < 3:
-        print(f"Error: Path is too short to be joined")
+        print("Error: Path is too short to be joined")
         return []
 
     distance = float("inf")
@@ -658,26 +645,17 @@ class Grid:
     new_end_bridge_connection_node = new_bridge_path[-2]
 
     start_bridge_connection_nodes = self.split_path(start_bridge_key, start_bridge_node)
-    end_bridge_connection_nodes = self.split_path(end_bridge_key, end_bridge_node)
     start_bridge_connection_nodes.append(new_start_bridge_connection_node)
+    end_bridge_connection_nodes = self.split_path(end_bridge_key, end_bridge_node)
     end_bridge_connection_nodes.append(new_end_bridge_connection_node)
-    start_bridge_end_node_list = list(start_bridge_key)
-    start_bridge_end_node_list.append(new_bridge_path[-1])
-    end_bridge_end_node_list = list(end_bridge_key)
-    end_bridge_end_node_list.append(new_bridge_path[0])
     
-    self.saved_junction[start_bridge_node] = \
-      [start_bridge_end_node_list, start_bridge_connection_nodes]
+    self.saved_junction[start_bridge_node] = start_bridge_connection_nodes
     print(f"Junction Added: {start_bridge_node.coord}")
-    print(f"End Nodes: {list(map(lambda a: a.coord, start_bridge_end_node_list))}")
     print(f"Connection points: {list(map(lambda a: a.coord, start_bridge_connection_nodes))}")
-    self.saved_junction[end_bridge_node] = \
-      [end_bridge_end_node_list, end_bridge_connection_nodes]
+    self.saved_junction[end_bridge_node] = end_bridge_connection_nodes
     print(f"Junction Added: {end_bridge_node.coord}")
-    print(f"End Nodes: {list(map(lambda a: a.coord, end_bridge_end_node_list))}")
     print(f"Connection points: {list(map(lambda a: a.coord, end_bridge_connection_nodes))}")
     return new_bridge_path
-
 
 
 
@@ -691,7 +669,7 @@ class Grid:
       if key == path_key:
         if split_node not in value:
           print(f"Error: Split Node {split_node.coord} is not in path {list(map(lambda a: a.coord, key))}")
-          return
+          return []
         path_to_split = value
 
     index = path_to_split.index(split_node)
@@ -751,6 +729,7 @@ if __name__ == '__main__':
   # path9 = grid.add_path((0,10,0),(10,10,0))
   # path10 = grid.add_path((10,0,0),(10,10,0))
   path11 = grid.add_path((0,0,0), (10,0,0))
+  grid.delete_path((0,1,0), (10,1,0))
 
   # do bottom -> top
 
@@ -776,11 +755,10 @@ if __name__ == '__main__':
     print(key_coord,":", path_coord)
   
   for key,value in grid.saved_junction.items():
-    end_node_list = value[0]
-    end_connection_list = value[1]
+    end_connection_list = value
     print("\n")
     print(f"Junction: {key.coord}")
-    print(f"End Nodes: {list(map(lambda a: a.coord, end_node_list))}")
+    # print(f"End Nodes: {list(map(lambda a: a.coord, end_node_list))}")
     print(f"Connection points: {list(map(lambda a: a.coord, end_connection_list))}")
   
   # print(grid.saved_path)
