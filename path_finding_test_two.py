@@ -752,8 +752,9 @@ class Grid:
     end_ground_node = None
 
     if start_node in self.connection_dict:
+
       start_ground_node = self.connection_dict[start_node][0]
-      start_ground_node = self.connection_dict[start_node][2]
+      start_ground_path = self.connection_dict[start_node][2]
       print(f"Start Ground Node is already in Connection Dictionary: {start_ground_node.coord}")
     else:
       start_ground_node = self.find_ground_node(start_node, dir_x, dir_y)
@@ -774,6 +775,8 @@ class Grid:
     else:
       end_ground_node = self.find_ground_node(end_node, -dir_x, -dir_y)
       ground_end_path = self.path_finding(end_ground_node.coord, end_node.coord)
+      self.print_saved_path()
+      print(f"Poping {end_ground_node.coord} {end_node.coord}")
       self.saved_path.pop((end_ground_node, end_node))
       self.reset_grid()
       print(f"End-Ground path from {end_ground_node.coord} to {end_node.coord} is: {list(map(lambda a: a.coord, ground_end_path))}")
@@ -828,6 +831,8 @@ class Grid:
 
 
   def generate_path_for_print(self):
+    self.print_saved_path()
+    self.print_connection_dict()
     new_path_list = []
     # copy saved_path to list
     for key,value in self.saved_path.items():
@@ -841,7 +846,14 @@ class Grid:
       for another_key, another_value in self.saved_path.items():
         if ground_node in another_key:
           ground_path = another_value
-          new_path_list.remove(another_value)   # remove duplicate
+          
+          # for path in new_path_list:
+          #   print(f"Path: {list(map(lambda a: a.coord, path))}")
+          # print(f"another value:  {list(map(lambda a: a.coord, another_value))}")
+          try:
+            new_path_list.remove(another_value)   # remove duplicate
+          except ValueError:
+            print(f"Path {list(map(lambda a: a.coord, another_value))} not in new_path_list")
       connected_path = []
       if is_start:
         connected_path.extend(tip_path)
@@ -861,8 +873,100 @@ class Grid:
     self.path_for_print = new_path_list
     return new_coord_list
 
-        
-      
+
+  def print_saved_path(self):
+    print("\n")
+    path = self.saved_path
+    for key, value in path.items():
+      path_coord = []
+      key_coord = []
+      for node in value:
+        path_coord.append(node.coord)
+      for node in key:
+        key_coord.append(node.coord)
+      print("Saved Path:")
+      print(key_coord,":", path_coord)
+
+  def print_saved_junction(self):
+    print("\n")
+    for key,value in self.saved_junction.items():
+      end_connection_list = value
+      print("\n")
+      print(f"Junction: {key.coord}")
+      # print(f"End Nodes: {list(map(lambda a: a.coord, end_node_list))}")
+      print(f"Connection points: {list(map(lambda a: a.coord, end_connection_list))}")
+
+  def print_connection_dict(self):
+    print("\n")
+    for key,value in self.connection_dict.items():
+      tip_node = key
+      ground_node = value[0]
+      is_start = value[1]
+      path = value[2]
+      print(f"Tip: {tip_node.coord}, Ground: {ground_node.coord}, is_start = {is_start}")
+      print(f"Path: {list(map(lambda a: a.coord, path))}")
+
+
+
+
+
+
+def make_pipe(name, dot_list):
+  if (len(dot_list) < 2):
+    print(f"Dot list {dot_list} too short")
+    return
+
+  curve_data = bpy.data.curves.new(name, type = "CURVE")
+  curve_data.dimensions = "3D"
+
+  polyline = curve_data.splines.new("POLY")
+  polyline.points.add(len(dot_list)-1)
+  for i, coord in enumerate(dot_list):
+    x,y,z = coord
+    polyline.points[i].co = (x,y,z,1)
+  
+  curve_object = bpy.data.objects.new(name, curve_data)
+  bpy.context.collection.objects.link(curve_object)
+
+  curve_object.data.bevel_depth = .2
+  curve_object.data.bevel_resolution = 2
+
+  curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = .1
+
+
+
+def make_junction(coord, connection_list):
+  bpy.ops.mesh.primitive_cube_add(size = .7)
+  cube = bpy.context.active_object
+  cube.location = coord
+  for connection in connection_list:
+    bpy.ops.mesh.primitive_cube_add(size = 1)
+    connection_cube = bpy.context.active_object
+    connection_cube.location = tuple(map(lambda a,b: (a+b)/2, coord, connection))
+    connection_cube.scale = (.5,.5,.5)
+
+
+
+def make_everything(grid):
+  pipe_list = []
+  junction_list = []
+  junction_connection_list = []
+
+  pipe_list = grid.generate_path_for_print()
+
+  # for key,value in grid.saved_path.items():
+  #   this_pipe = list(map(lambda a: a.coord, value))
+  #   pipe_list.append(this_pipe)
+  
+  for key,value in grid.saved_junction.items():
+    this_junction = [key.coord, list(map(lambda a: a.coord, value))]
+    junction_list.append(this_junction)
+
+  for i,pipe in enumerate(pipe_list):
+    make_pipe(f"Pipe{i}", pipe)
+  
+  for i,junction_struct in enumerate(junction_list):
+    make_junction(junction_struct[0], junction_struct[1])
 
 
 
@@ -900,21 +1004,23 @@ if __name__ == '__main__':
   # print(node.coord)
   # print(node.neighbors)
 
-  # path1 = grid.add_path((0,0,0),(0,20,0))
-  # path2 = grid.add_path((20,20,0),(20,0,0))
-  # path3 = grid.add_path((1,15,5),(12,7,3))
-  # path4 = grid.add_path((1,0,1),(14,10,0))
-  # path5 = grid.add_path((6,0,0),(1,15,5))
-  # path6 = grid.add_path((6,0,0),(20,20,0))
-  # path7 = grid.add_path((6,18,2),(20,10,0))
-  # path8 = grid.add_path((7,17,4),(20,20,0))
-  # path9 = grid.add_path((0,10,0),(10,20,0))
-  # path10 = grid.add_path((20,0,0),(20,20,0))
-  # path11 = grid.add_path((0,0,0), (20,0,0))
+  path1 = grid.connect_two_node((0,0,0),(0,20,0))
+  path2 = grid.connect_two_node((20,20,0),(20,0,0))
+  path3 = grid.connect_two_node((1,15,5),(12,7,3))
+  path4 = grid.connect_two_node((1,0,1),(14,10,0))
+  path5 = grid.connect_two_node((6,0,0),(1,15,5))
+  path6 = grid.connect_two_node((6,0,0),(20,20,0))
+  # path7 = grid.connect_two_node((6,18,2),(20,10,0))
+  path8 = grid.connect_two_node((7,17,4),(20,20,0))
+  # path9 = grid.connect_two_node((0,10,0),(10,20,0))
+  path10 = grid.connect_two_node((20,0,0),(20,20,0))
+  path11 = grid.connect_two_node((0,0,0), (20,0,0))
   # grid.delete_path((0,1,0), (10,1,0))
 
   path12 = grid.connect_two_node((5,0,2), (0,0,3))
   path13 = grid.connect_two_node((2,3,3),(5,0,2))
+
+
 
 
   print("\n")
@@ -951,6 +1057,9 @@ if __name__ == '__main__':
   
   print("\n")
   print(grid.generate_path_for_print())
+
+
+  make_everything(grid)
 
 
 
