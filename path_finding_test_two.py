@@ -203,7 +203,9 @@ class Grid:
       self.saved_path = {}
       # {junction_ndoe : [connection_nodes]}
       self.saved_junction = {}
-      # {tip_node : [ground_node, is_start, path]}
+
+      self.tip_ground_table = {}
+      # 
       self.connection_dict = {}
 
       self.path_for_print = []
@@ -294,7 +296,6 @@ class Grid:
     # print(f"Recording Path from {start_node.coord} to {end_node.coord}")
     this_node = end_node
     path_node_list = []
-    path_coord_list = []
 
     while this_node is not start_node:
       path_node_list.insert(0, this_node)
@@ -303,10 +304,8 @@ class Grid:
 
     self.saved_path[(start_node, end_node)] = path_node_list
     self.reset_grid()
-    for node in path_node_list:
-      path_coord_list.append(node.coord)
-    print(f"Path: {path_coord_list}")
 
+    print(f"Path: {list(map(lambda a: a.coord, path_node_list))}")
     return path_node_list
 
 
@@ -324,12 +323,13 @@ class Grid:
       for node in this_saved_path:
         node.visited = True      
     
-    for key,value in self.connection_dict.items():
-      ground_node = value[0]
-      this_saved_path = value[2]
-      for node in this_saved_path:
-        node.visited = True
-      ground_node.visited = False
+    # TODO
+    # for key,value in self.connection_dict.items():
+    #   ground_node = value[0]
+    #   this_saved_path = value[2]
+    #   for node in this_saved_path:
+    #     node.visited = True
+    #   ground_node.visited = False
 
     self.cut_all_crossover()
     print(f"Grid Reset")

@@ -329,7 +329,7 @@ class Grid:
       this_saved_path = value[2]
       for node in this_saved_path:
         node.visited = True
-      ground_node.visited = False
+      # ground_node.visited = False
 
     self.cut_all_crossover()
     print(f"Grid Reset")
@@ -724,12 +724,12 @@ class Grid:
       start_ground_node = self.tip_ground_table[start_node][0]
     else:
       start_ground_node = self.find_ground_node(start_node, dir_x, dir_y)
-      start_ground_path_inverse = self.path_finding(start_ground_node.coord, start_node.coord)
-      self.saved_path.pop((start_ground_node, start_node))
+      start_ground_path = self.path_finding(start_node.coord, start_ground_node.coord)
+      self.saved_path.pop((start_node, start_ground_node))
       self.reset_grid()
-      start_ground_path = []
-      for node in start_ground_path_inverse:
-        start_ground_path.insert(0, node)
+      # start_ground_path = []
+      # for node in start_ground_path_inverse:
+      #   start_ground_path.insert(0, node)
       print(f"Start-Ground path from {start_node.coord} to {start_ground_node.coord} is: {list(map(lambda a: a.coord, start_ground_path))}")
       self.tip_ground_table[start_node] = [start_ground_node, True, start_ground_path]
     
@@ -738,9 +738,12 @@ class Grid:
       print(f"End Node {end_node.coord} is already in tip_ground_table")
     else:
       end_ground_node = self.find_ground_node(end_node, -dir_x, -dir_y)
-      ground_end_path = self.path_finding(end_ground_node.coord, end_node.coord)
-      self.saved_path.pop((end_ground_node, end_node))
+      ground_end_path_inverse = self.path_finding(end_node.coord, end_ground_node.coord)
+      self.saved_path.pop((end_node, end_ground_node))
       self.reset_grid()
+      ground_end_path = []
+      for node in ground_end_path_inverse:
+        ground_end_path.insert(0, node)
       print(f"End-Ground path from {end_ground_node.coord} to {end_node.coord} is: {list(map(lambda a: a.coord, ground_end_path))}")
       self.tip_ground_table[end_node] = [end_ground_node, False, ground_end_path]
 
@@ -771,8 +774,11 @@ class Grid:
             ground_node = self.node_grid[ground_node.coord[0]][ground_node.coord[1]][ground_node.coord[2]+1]
             continue
           ground_node = self.node_grid[ground_node.coord[0]][ground_node.coord[1]+dir_y][ground_node.coord[2]]
+          break
         ground_node = self.node_grid[ground_node.coord[0]+dir_x][ground_node.coord[1]+dir_y][ground_node.coord[2]]
+        break
       ground_node = self.node_grid[ground_node.coord[0]+dir_x][ground_node.coord[1]][ground_node.coord[2]]
+      break
     print(f"Found ground Node {ground_node.coord} for Node {node.coord}")
     return ground_node
 
@@ -789,22 +795,49 @@ class Grid:
       whole_path = []
 
       for path_key, path_value in self.saved_path.items():
-        if ground_node in path_key:
-          ground_path = path_value
-          self.connection_dict.pop(path_key)
 
-          if is_start:
-            whole_path.extend(tip_ground_path)
-            whole_path.extend(ground_path[1:])
-            print(f"Retreved whole path: {tip_node.coord}-{ground_path[-1].coord}, path: {list(map(lambda a: a.coord, whole_path))}")
-            self.connection_dict[(tip_node, ground_path[-1])] = whole_path
-            break
+        if ground_node in path_key:
+
+          if path_key not in self.connection_dict:  # no junction, so already removed
+            print(f"Path starting at Node {tip_node.coord} have no merge/junction")
+            for connection_key, connection_value in self.connection_dict.items():
+              if ground_node in connection_key:
+                ground_path = connection_value
+                self.connection_dict.pop(connection_key)
+                if is_start:
+                  whole_path.extend(tip_ground_path)
+                  whole_path.extend(ground_path[1:])
+                  print(f"Retreved whole path: {tip_node.coord}-{ground_path[-1].coord}, path: {list(map(lambda a: a.coord, whole_path))}")
+                  self.connection_dict[(tip_node, ground_path[-1])] = whole_path
+                  break
+                else:
+                  whole_path.extend(ground_path)
+                  whole_path.extend(tip_ground_path[1:])
+                  print(f"Retreved whole path: {ground_path[-1].coord}-{tip_node.coord}, path: {list(map(lambda a: a.coord, whole_path))}")
+                  self.connection_dict[(ground_path[0], tip_node)] = whole_path
+                  break
+            
+            if len(ground_path) == 0:
+              print(f"Error: Can't find ground path of path_key {list(map(lambda a: a.coord, path_key))}")
           else:
-            whole_path.extend(ground_path)
-            whole_path.extend(tip_ground_path[1:])
-            print(f"Retreved whole path: {ground_path[-1].coord}-{tip_node.coord}, path: {list(map(lambda a: a.coord, whole_path))}")
-            self.connection_dict[(ground_path[0], tip_node)] = whole_path
-            break
+            # try:
+            self.connection_dict.pop(path_key)
+            # except KeyError:
+            #   pass
+            ground_path = path_value
+
+            if is_start:
+              whole_path.extend(tip_ground_path)
+              whole_path.extend(ground_path[1:])
+              print(f"Retreved whole path: {tip_node.coord}-{ground_path[-1].coord}, path: {list(map(lambda a: a.coord, whole_path))}")
+              self.connection_dict[(tip_node, ground_path[-1])] = whole_path
+              break
+            else:
+              whole_path.extend(ground_path)
+              whole_path.extend(tip_ground_path[1:])
+              print(f"Retreved whole path: {ground_path[-1].coord}-{tip_node.coord}, path: {list(map(lambda a: a.coord, whole_path))}")
+              self.connection_dict[(ground_path[0], tip_node)] = whole_path
+              break
       if len(whole_path) == 0:
         print(f"Error: Can't retreve whole path for tip Node {tip_node.coord}")
 
@@ -815,7 +848,37 @@ class Grid:
       return
 
     print("Connection_dict updated successfully")
+    self.smooth_out_path()
 
+
+  def smooth_out_path(self):
+    for key,value in self.connection_dict.items():
+      this_path = value
+      to_remove_list = []
+      for i,node in enumerate(this_path[1:-1]):
+        last_node = this_path[i]
+        next_node = this_path[i+2]
+
+        if last_node.coord[2] == next_node.coord[2] and \
+          abs(last_node.coord[1] - next_node.coord[1]) < 2 and \
+            abs(last_node.coord[0] - next_node.coord[0]) < 2:
+            to_remove_list.append(node)
+            # move connection for junction if affected
+            if last_node in self.saved_junction:
+              connection_list = self.saved_junction[last_node]
+              connection_list.remove(node)
+              connection_list.append(next_node)
+            if next_node in self.saved_junction:
+              connection_list = self.saved_junction[next_node]
+              connection_list.remove(node)
+              connection_list.append(last_node)
+
+      for node in to_remove_list:
+        this_path.remove(node)
+
+        print(f"Smoothed Node {node.coord} out of Path {list(map(lambda a: a.coord, key))}")
+      self.connection_dict[key] = this_path
+          
 
 
   def print_saved_path(self):
@@ -852,6 +915,70 @@ class Grid:
 
 
 
+
+
+
+
+
+
+
+
+
+
+def make_pipe(name, dot_list):
+  if (len(dot_list) < 2):
+    print(f"Dot list {dot_list} too short")
+    return
+
+  curve_data = bpy.data.curves.new(name, type = "CURVE")
+  curve_data.dimensions = "3D"
+
+  polyline = curve_data.splines.new("POLY")
+  polyline.points.add(len(dot_list)-1)
+  for i, coord in enumerate(dot_list):
+    x,y,z = coord
+    polyline.points[i].co = (x,y,z,1)
+  
+  curve_object = bpy.data.objects.new(name, curve_data)
+  bpy.context.collection.objects.link(curve_object)
+
+  curve_object.data.bevel_depth = .2
+  curve_object.data.bevel_resolution = 2
+
+  curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = .1
+
+
+
+def make_junction(coord, connection_list):
+  bpy.ops.mesh.primitive_cube_add(size = .7)
+  cube = bpy.context.active_object
+  cube.location = coord
+  for connection in connection_list:
+    bpy.ops.mesh.primitive_cube_add(size = 1)
+    connection_cube = bpy.context.active_object
+    connection_cube.location = tuple(map(lambda a,b: a+.25*(b-a), coord, connection))
+    connection_cube.scale = (.5,.5,.5)
+
+
+
+def make_everything(grid):
+  pipe_list = []
+  junction_list = []
+  # junction_connection_list = []    
+
+  for key,value in grid.connection_dict.items():
+    this_pipe = list(map(lambda a: a.coord, value))
+    pipe_list.append(this_pipe)
+  
+  for key,value in grid.saved_junction.items():
+    this_junction = [key.coord, list(map(lambda a: a.coord, value))]
+    junction_list.append(this_junction)
+
+  for i,pipe in enumerate(pipe_list):
+    make_pipe(f"Pipe{i}", pipe)
+  
+  for i,junction_struct in enumerate(junction_list):
+    make_junction(junction_struct[0], junction_struct[1])
 
 
 
@@ -897,9 +1024,22 @@ if __name__ == '__main__':
   # path11 = grid.add_path((0,0,0), (20,0,0))
   # grid.delete_path((0,1,0), (10,1,0))
 
-  grid.connect_two_node((5,0,2), (0,0,3))
-  grid.connect_two_node((2,3,3),(5,0,2))
-  grid.connect_two_node((4,3,4), (0,0,3))
+  grid.connect_two_node((15,10,2), (0,10,3))
+  grid.connect_two_node((2,13,3),(15,10,2))
+  grid.connect_two_node((4,3,4), (0,10,3))
+  grid.connect_two_node((0,9,3),(15,9,3))
+  grid.connect_two_node((1,10,5), (20,10,3))
+  grid.connect_two_node((5,9,3),(12,9,5))
+  grid.connect_two_node((6,9,4),(11,9,5))
+  grid.connect_two_node((7,9,5),(10,9,5))
+  grid.connect_two_node((0,0,5), (10,10,5))
+  grid.connect_two_node((8,11,5),(12,0,5))
+  grid.connect_two_node((16,11,5),(12,0,5))
+
+
+  # path = grid.path_finding((11,9,0),(12,10,5))
+  # path_coord = list(map(lambda a: a.coord, path))
+  # make_pipe("p", path_coord)
 
   grid.update_connection_dict()
 
@@ -907,5 +1047,7 @@ if __name__ == '__main__':
   grid.print_saved_junction()
   grid.print_tip_ground_table()
   grid.print_connection_dict()
+
+  make_everything(grid)
 
 
