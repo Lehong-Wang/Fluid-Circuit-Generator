@@ -456,6 +456,9 @@ class Grid:
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
     end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
 
+    # print(f"start{start_node.coord}: {start_node.visited}")
+    # print(f"end{end_node.coord}: {end_node.visited}")
+
     past_end_node_list = []
     for key in self.saved_path:
       past_end_node_list.append(key[0])
@@ -470,6 +473,17 @@ class Grid:
 
     if start_node_in_list and not end_node_in_list:      
       print(f"Node {start_node.coord} is end for other tubing, create junction")
+      # if start is to_join(fliped), also flip is_start and path
+      for key,value in self.tip_ground_table.items():
+        if end_node in value:
+          value[1] = True
+          ground_end_path = value[2]
+          fliped_end_ground_path = []
+          for node in ground_end_path:
+            fliped_end_ground_path.insert(0,node)
+          value[2] = fliped_end_ground_path
+
+
       return self.create_junction_path(end_node.coord, start_node.coord)
 
     if end_node_in_list and not start_node_in_list:      
@@ -513,6 +527,7 @@ class Grid:
     original_path_start_node = None
     original_path_end_node = None
     path_to_join = []
+    # find the path to join in saved_path
     for key, value in self.saved_path.items():
       if end_node in key:
         original_path_start_node, original_path_end_node = key
@@ -520,12 +535,13 @@ class Grid:
     if len(path_to_join) < 3:
       print(f"Error: Path {list(map(lambda a: a.coord, path_to_join))} is too short to be joined")
 
+    # find point of junction
     distance = float("inf")
     junction_node = None
     for i,node in enumerate(path_to_join[1:-1]):
       dest_x, dest_y, dest_z = node.coord
       this_x, this_y, this_z = start_node.coord
-      dis = math.sqrt((dest_x - this_x)**2 + (dest_y - this_y)**2 + (dest_z - this_z)**2) + .0*abs(len(path_to_join)/2 - i)
+      dis = math.sqrt((dest_x - this_x)**2 + (dest_y - this_y)**2 + (dest_z - this_z)**2) + .5*abs(len(path_to_join)/2 - i)
       if dis < distance:
         distance = dis
         junction_node = node
@@ -534,7 +550,7 @@ class Grid:
     junction_node.visited = False
     new_juction_path = self.path_finding(start_node.coord, junction_node.coord)
 
-    # this is not going to happen because we create new path every junction
+    # this is not going to happen because we create new junction every path
     if junction_node in self.saved_junction:
       print(f"Node {junction_node.coord} is already a junction")
       self.saved_junction[junction_node].append(new_juction_path[-2])
@@ -549,6 +565,7 @@ class Grid:
       [start_junction_connect_node, junction_end_connect_node, new_jusction_connect_node]
     print(f"Junction Added: {junction_node.coord}")
     print(f"Connection points: {[start_junction_connect_node.coord, junction_end_connect_node.coord, new_jusction_connect_node.coord]}")
+    self.reset_grid()
     return new_juction_path
 
   
@@ -598,7 +615,7 @@ class Grid:
       for dest_node in end_bridge_path[1:-1]:
         f_x,f_y,f_z = from_node.coord
         d_x,d_y,d_z = dest_node.coord
-        dis = math.sqrt((f_x - d_x)**2 + (f_y - d_y)**2 + (f_z - d_z)**2) + .05*abs(len(start_bridge_path)/2 - i)
+        dis = math.sqrt((f_x - d_x)**2 + (f_y - d_y)**2 + (f_z - d_z)**2) + .5*abs(len(start_bridge_path)/2 - i)
 
         if dis < distance:
           distance = dis
@@ -623,6 +640,7 @@ class Grid:
     self.saved_junction[end_bridge_node] = end_bridge_connection_nodes
     print(f"Junction Added: {end_bridge_node.coord}")
     print(f"Connection points: {list(map(lambda a: a.coord, end_bridge_connection_nodes))}")
+    self.reset_grid()
     return new_bridge_path
 
 
@@ -718,7 +736,9 @@ class Grid:
 
     start_ground_node = None
     end_ground_node = None
-
+    start_ground_node_is_new = False
+    end_ground_node_is_new = False
+    # if already in table, use that, else create one
     if start_node in self.tip_ground_table:
       print(f"Start Node {start_node.coord} is already in tip_ground_table")
       start_ground_node = self.tip_ground_table[start_node][0]
@@ -727,11 +747,9 @@ class Grid:
       start_ground_path = self.path_finding(start_node.coord, start_ground_node.coord)
       self.saved_path.pop((start_node, start_ground_node))
       self.reset_grid()
-      # start_ground_path = []
-      # for node in start_ground_path_inverse:
-      #   start_ground_path.insert(0, node)
       print(f"Start-Ground path from {start_node.coord} to {start_ground_node.coord} is: {list(map(lambda a: a.coord, start_ground_path))}")
       self.tip_ground_table[start_node] = [start_ground_node, True, start_ground_path]
+      start_ground_node_is_new = True
     
     if end_node in self.tip_ground_table:
       end_ground_node = self.tip_ground_table[end_node][0]
@@ -744,11 +762,17 @@ class Grid:
       ground_end_path = []
       for node in ground_end_path_inverse:
         ground_end_path.insert(0, node)
-      print(f"End-Ground path from {end_ground_node.coord} to {end_node.coord} is: {list(map(lambda a: a.coord, ground_end_path))}")
+      print(f"Ground_End path from {end_ground_node.coord} to {end_node.coord} is: {list(map(lambda a: a.coord, ground_end_path))}")
       self.tip_ground_table[end_node] = [end_ground_node, False, ground_end_path]
+      end_ground_node_is_new = True
 
-    start_ground_node.visited = False
-    end_ground_node.visited = False
+    # if new, mark not visited
+    # if old, mark visited to avoid collision
+    if start_ground_node_is_new:
+      start_ground_node.visited = False
+    if end_ground_node_is_new:
+      end_ground_node.visited = False
+
     ground_ground_path = self.add_path(start_ground_node.coord, end_ground_node.coord)
 
     print(f"Ground-Ground path from {start_ground_node.coord} to {end_ground_node.coord} is: {list(map(lambda a: a.coord, ground_ground_path))}")
@@ -798,7 +822,7 @@ class Grid:
 
         if ground_node in path_key:
 
-          if path_key not in self.connection_dict:  # no junction, so already removed
+          if path_key not in self.connection_dict:  # one to one path, no junction, so already removed by the other end
             print(f"Path starting at Node {tip_node.coord} have no merge/junction")
             for connection_key, connection_value in self.connection_dict.items():
               if ground_node in connection_key:
@@ -1035,6 +1059,14 @@ if __name__ == '__main__':
   grid.connect_two_node((0,0,5), (10,10,5))
   grid.connect_two_node((8,11,5),(12,0,5))
   grid.connect_two_node((16,11,5),(12,0,5))
+  grid.connect_two_node((0,0,5), (12,0,5))
+  grid.connect_two_node((4,3,4), (0,0,5))
+  grid.connect_two_node((4,3,4), (12,0,5))
+  grid.connect_two_node((4,3,4), (3,0,5))
+  grid.connect_two_node((12,0,5), (6,1,4))
+  grid.connect_two_node((15,10,2), (6,1,4))
+  grid.connect_two_node((20,10,3), (6,1,4))
+  grid.connect_two_node((0,10,3), (6,1,4))
 
 
   # path = grid.path_finding((11,9,0),(12,10,5))
