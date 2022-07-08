@@ -7,6 +7,8 @@ p = importlib.util.module_from_spec(spec)
 sys.modules["path_finding.py"] = p
 spec.loader.exec_module(p)
 
+from math import sqrt
+
 
 
 
@@ -38,6 +40,7 @@ class PipeSystem:
     if (len(coord_list) < 2):
       print(f"Error: Dot list {coord_list} too short")
       return
+    coord_list = self.make_fillet(coord_list)
 
     curve_data = bpy.data.curves.new(name, type = "CURVE")
     curve_data.dimensions = "3D"
@@ -52,7 +55,7 @@ class PipeSystem:
     bpy.context.collection.objects.link(curve_object)
 
     curve_object.data.bevel_depth = self.pipe_dimention[0] + self.pipe_dimention[1]
-    curve_object.data.bevel_resolution = 2
+    curve_object.data.bevel_resolution = 10
     curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = self.pipe_dimention[1]
     curve_object.select_set(True)
     bpy.context.view_layer.objects.active = curve_object
@@ -62,16 +65,16 @@ class PipeSystem:
 
   def make_junction(self, name, junction_coord, connection_list):
 
-    bpy.ops.mesh.primitive_uv_sphere_add(radius = self.pipe_dimention[0] + self.pipe_dimention[1])
+    bpy.ops.mesh.primitive_uv_sphere_add(radius = 1*(self.pipe_dimention[0] + self.pipe_dimention[1]), segments=16, ring_count=8)
     junction_sphere = bpy.context.active_object
     junction_sphere.name = name
     junction_sphere.location = junction_coord
     junction_sphere.modifiers.new("Solidify", "SOLIDIFY").thickness = self.pipe_dimention[1]
 
-    connection_object_list = []
+    connection_object_dict = {}
     for key,value in self.pipe_object_dict.items():
       if junction_coord in key:
-        connection_object_list.append(value)
+        connection_object_dict[key] = value
 
 
     for connection_coord in connection_list:
@@ -80,7 +83,7 @@ class PipeSystem:
 
       polyline = curve_data.splines.new("POLY")
       polyline.points.add(1)
-      end_coord = tuple(map(lambda a,b: a + 0.1*(b-a), junction_coord, connection_coord))
+      end_coord = tuple(map(lambda a,b: a + 0.01*(b-a), junction_coord, connection_coord))
       x,y,z = end_coord
       polyline.points[0].co = (x,y,z,1)
       x,y,z = connection_coord
@@ -90,41 +93,55 @@ class PipeSystem:
       bpy.context.collection.objects.link(curve_object)
 
       curve_object.data.bevel_depth = self.pipe_dimention[0]
-      curve_object.data.bevel_resolution = 2
+      curve_object.data.bevel_resolution = 1
       curve_object.data.use_fill_caps = True
 
       curve_object.select_set(True)
       bpy.context.view_layer.objects.active = curve_object
       bpy.ops.object.convert(target = "MESH")
 
-      junction_sphere.modifiers.new("J_C", "BOOLEAN").object = curve_object
-      junction_sphere.modifiers["J_C"].operation = 'DIFFERENCE'
-      junction_sphere.modifiers["J_C"].solver = "FAST"
+      junction_modifier_name = "J_C"
+      junction_sphere.modifiers.new(junction_modifier_name, "BOOLEAN").object = curve_object
+      junction_sphere.modifiers[junction_modifier_name].operation = 'DIFFERENCE'
+      junction_sphere.modifiers[junction_modifier_name].solver = "EXACT"
+      # junction_sphere.modifiers[junction_modifier_name].use_self = True
+      # junction_sphere.modifiers[junction_modifier_name].use_hole_tolerant = True
       junction_sphere.select_set(True)
       bpy.context.view_layer.objects.active = junction_sphere
       # bpy.ops.object.modifier_apply(modifier = "BOOLEAN")
-      bpy.ops.object.modifier_apply(modifier="J_C")
+      bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
 
-      for pipe in connection_object_list:
+      for key,value in connection_object_dict.items():
+        pipe = value[1]
+        pipe_connections = value[0]
+        if not connection_coord in pipe_connections:
 
-        modifier_name = f"P_C{pipe.name}"
-        pipe.modifiers.new(modifier_name, "BOOLEAN").object = curve_object
-        pipe.modifiers[modifier_name].operation = 'DIFFERENCE'
+          modifier_name = f"P_C{pipe.name}"
+          pipe.modifiers.new(modifier_name, "BOOLEAN").object = curve_object
+          pipe.modifiers[modifier_name].operation = 'DIFFERENCE'
 
         # pipe.modifiers[modifier_name].solver = "FAST"
-        # pipe.select_set(True)
-        # bpy.context.view_layer.objects.active = pipe
+          # pipe.select_set(True)
+          # bpy.context.view_layer.objects.active = pipe
         # # bpy.ops.object.modifier_apply(modifier = "BOOLEAN")
-        # bpy.ops.object.modifier_apply(modifier=modifier_name)
+          # bpy.ops.object.modifier_apply(modifier = modifier_name)
 
       # bpy.data.objects.remove(curve_object)
       curve_object.hide_set(True)
 
-    for pipe in connection_object_list:
-      for modifier in pipe.modifiers:
-        modifier.solver = "EXACT"
-        modifier.use_self = True
-        modifier.use_hole_tolerant = True
+    for key,value in connection_object_dict.items():
+      pipe = value[1]
+      pipe.select_set(True)
+      bpy.context.view_layer.objects.active = pipe
+      for this_modifier in pipe.modifiers:
+        this_modifier.solver = "EXACT"
+        this_modifier.use_self = True
+        this_modifier.use_hole_tolerant = True
+        bpy.ops.object.modifier_apply(modifier = this_modifier.name)
+
+
+
+
 
 
       
@@ -133,11 +150,65 @@ class PipeSystem:
     for key,value in self.grid.connection_dict.items():
       path_name = f"Path_{key[0].coord}-{key[1].coord}"
       # self.pipe_object_dict.append(self.make_pipe(path_name, list(map(lambda a: a.coord,value))))
-      self.pipe_object_dict[(key[0].coord, key[1].coord)] = self.make_pipe(path_name, list(map(lambda a: a.coord,value)))
+      self.pipe_object_dict[(key[0].coord, key[1].coord)] = [(value[1].coord, value[-2].coord), self.make_pipe(path_name, list(map(lambda a: a.coord,value)))]
     
     for key,value in self.grid.saved_junction.items():
       junction_name = f"Junction_{key.coord}"
       self.make_junction(junction_name, key.coord, list(map(lambda a: a.coord,value)))
+
+    for object in bpy.data.objects:
+      object.select_set(True)
+      bpy.context.view_layer.objects.active = object
+      bpy.ops.object.mode_set(mode = 'EDIT')
+      bpy.ops.mesh.select_all(action='SELECT')
+      bpy.ops.mesh.vert_connect_nonplanar(angle_limit=0.01)
+      bpy.ops.mesh.select_all(action='SELECT')
+      bpy.ops.mesh.vert_connect_concave()
+      bpy.ops.mesh.select_all(action='SELECT')
+      bpy.ops.mesh.remove_doubles(threshold=0.02)
+      bpy.ops.object.mode_set(mode = 'OBJECT')
+
+
+
+
+
+
+  def make_fillet(self, coord_list):
+    new_coord_list = []
+    fillet_size = .7 * (self.pipe_dimention[0] + self.pipe_dimention[1])
+
+    for i, this_coord in enumerate(coord_list):
+      if (i == 0 or i == len(coord_list) - 1):
+        new_coord_list.append(this_coord)
+      else:
+        last_coord = coord_list[i - 1]
+        next_coord = coord_list[i + 1]
+        # last <-v1- coord -v2-> next
+        v1 = tuple(map(lambda a,b: a-b, last_coord, this_coord))
+        v2 = tuple(map(lambda a,b: a-b, next_coord, this_coord))
+
+        l_v1 = sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2)
+        l_v2 = sqrt(v2[0]**2 + v2[1]**2 + v2[2]**2)
+
+        # dot product
+        dot_product = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+        cos = dot_product / (l_v1 * l_v2)
+
+        # angle > 120
+        if (cos < -.5):
+          new_coord_list.append(this_coord)
+        else:
+          d1 = tuple(map(lambda a: a/l_v1*fillet_size, v1)) 
+          d2 = tuple(map(lambda a: a/l_v2*fillet_size, v2)) 
+
+          new_coord1 = tuple(map(lambda a,b: a+b, this_coord, d1))
+          new_coord2 = tuple(map(lambda a,b: a+b, this_coord, d2))
+
+          new_coord_list.append(new_coord1)
+          new_coord_list.append(new_coord2)
+        
+    return new_coord_list
+
 
 
 
