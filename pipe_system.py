@@ -27,13 +27,75 @@ class PipeSystem:
       # self.junction_dimention = (.4, .2)
       self.unit_dimention = 1
 
+      self.tip_length = 1
+
       self.grid = p.Grid(self.grid_dimention)
 
-      # {(tip_coord, tip_coord) : pipe_object}
+      self.connection_dict = {}
+      self.junction_dict = {}
+
+      # {(tip_coord, tip_coord) : [(tip_connection_coord, tip_connection_coord), pipe_object]}
       self.pipe_object_dict = {}
 
       
     return self._instance
+
+
+  def connect_two_port(self, start_port_coord, end_port_coord):
+    print("\n")
+    print(f"Connecting Ports {start_port_coord} - {end_port_coord}")
+    start_tip_coord = (start_port_coord[0], start_port_coord[1], start_port_coord[2]-self.tip_length)
+    end_tip_coord = (end_port_coord[0], end_port_coord[1], end_port_coord[2]-self.tip_length)
+    
+    start_grid_coord, end_grid_coord = self.snap_to_grid(start_tip_coord, end_tip_coord)
+    print(f"Corrisponding Grid coord: {start_grid_coord} - {end_grid_coord}")
+    self.grid.connect_two_node(start_grid_coord, end_grid_coord)
+
+
+
+  def snap_to_grid(self, start_port_coord, end_port_coord):
+    dim = self.unit_dimention
+    dir_x = (end_port_coord[0] - start_port_coord[0]) > 0
+    dir_y = (end_port_coord[1] - start_port_coord[1]) > 0
+
+
+    # if exact on grid, don't modify
+    start_grid_coord = (start_port_coord[0]//dim + bool(start_port_coord[0]%dim)*dir_x, start_port_coord[1]//dim + bool(start_port_coord[1]%dim)*dir_y, start_port_coord[2]//dim)
+    end_grid_coord = (end_port_coord[0]//dim + bool(end_port_coord[0]%dim)*(not dir_x), end_port_coord[1]//dim + bool(end_port_coord[1]%dim)*(not dir_y), end_port_coord[2]//dim)
+    return (start_grid_coord, end_grid_coord)
+
+
+  def fetch_grid_data(self):
+    for key,value in self.grid.connection_dict.items():
+      grid_tip_coord = tuple(map(lambda a: a.coord, key))
+      real_coord = []
+      for coord in grid_tip_coord:
+        real_coord.append(tuple(map(lambda a: a*self.unit_dimention, coord)))
+      real_coord = tuple(real_coord)
+
+      grid_path_coord = list(map(lambda a: a.coord, value))
+      real_path = []
+      for coord in grid_path_coord:
+        real_path.append(list(map(lambda a: a*self.unit_dimention, coord)))
+
+      self.connection_dict[real_coord] = real_path
+
+    for key,value in self.grid.saved_junction.items():
+      real_junction_coord = tuple(map(lambda a: a*self.unit_dimention, key.coord))
+      real_connection_coord_list = []
+      connection_coord = list(map(lambda a: a.coord, value))
+      for coord in connection_coord:
+        real_connection_coord_list.append(list(map(lambda a: a*self.unit_dimention, coord)))
+      
+      self.junction_dict[real_junction_coord] = real_connection_coord_list
+
+
+
+
+
+
+
+
 
   
   def make_pipe(self, name, coord_list):
@@ -55,7 +117,7 @@ class PipeSystem:
     bpy.context.collection.objects.link(curve_object)
 
     curve_object.data.bevel_depth = self.pipe_dimention[0] + self.pipe_dimention[1]
-    curve_object.data.bevel_resolution = 10
+    curve_object.data.bevel_resolution = 2
     curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = self.pipe_dimention[1]
     curve_object.select_set(True)
     bpy.context.view_layer.objects.active = curve_object
@@ -147,14 +209,14 @@ class PipeSystem:
       
 
   def test_make_everything(self):
-    for key,value in self.grid.connection_dict.items():
-      path_name = f"Path_{key[0].coord}-{key[1].coord}"
+    for key,value in self.connection_dict.items():
+      path_name = f"Path_{key[0]}-{key[1]}"
       # self.pipe_object_dict.append(self.make_pipe(path_name, list(map(lambda a: a.coord,value))))
-      self.pipe_object_dict[(key[0].coord, key[1].coord)] = [(value[1].coord, value[-2].coord), self.make_pipe(path_name, list(map(lambda a: a.coord,value)))]
+      self.pipe_object_dict[(key[0], key[1])] = [(value[1], value[-2]), self.make_pipe(path_name, value)]
     
-    for key,value in self.grid.saved_junction.items():
-      junction_name = f"Junction_{key.coord}"
-      self.make_junction(junction_name, key.coord, list(map(lambda a: a.coord,value)))
+    for key,value in self.junction_dict.items():
+      junction_name = f"Junction_{key}"
+      self.make_junction(junction_name, key, value)
 
     for object in bpy.data.objects:
       object.select_set(True)
@@ -225,25 +287,31 @@ if __name__ == '__main__':
 
   pipe_system = PipeSystem()
 
-  pipe_system.grid.connect_two_node((15,10,2), (0,10,3))
-  pipe_system.grid.connect_two_node((2,13,3),(15,10,2))
-  pipe_system.grid.connect_two_node((4,3,4), (0,10,3))
-  pipe_system.grid.connect_two_node((0,9,3),(15,9,3))
-  pipe_system.grid.connect_two_node((1,10,5), (20,10,3))
-  pipe_system.grid.connect_two_node((5,9,3),(12,9,5))
-  pipe_system.grid.connect_two_node((6,9,4),(11,9,5))
-  pipe_system.grid.connect_two_node((7,9,5),(10,9,5))
-  pipe_system.grid.connect_two_node((0,0,5), (10,10,5))
-  pipe_system.grid.connect_two_node((8,11,5),(12,0,5))
-  pipe_system.grid.connect_two_node((16,11,5),(12,0,5))
-  pipe_system.grid.connect_two_node((0,0,5), (12,0,5))
-  pipe_system.grid.connect_two_node((4,3,4), (0,0,5))
-  pipe_system.grid.connect_two_node((4,3,4), (12,0,5))
-  pipe_system.grid.connect_two_node((4,3,4), (3,0,5))
-  pipe_system.grid.connect_two_node((12,0,5), (6,1,4))
-  pipe_system.grid.connect_two_node((15,10,2), (6,1,4))
-  pipe_system.grid.connect_two_node((20,10,3), (6,1,4))
-  pipe_system.grid.connect_two_node((0,10,3), (6,1,4))
+  # pipe_system.connect_two_port((15,10,2), (0,10,3))
+  # pipe_system.connect_two_port((2,13,3),(15,10,2))
+  # pipe_system.connect_two_port((4,3,4), (0,10,3))
+  # pipe_system.connect_two_port((0,9,3),(15,9,3))
+  # pipe_system.connect_two_port((1,10,5), (20,10,3))
+  # pipe_system.connect_two_port((5,9,3),(12,9,5))
+  # pipe_system.connect_two_port((6,9,4),(11,9,5))
+  # pipe_system.connect_two_port((7,9,5),(10,9,5))
+  # pipe_system.connect_two_port((0,0,5), (10,10,5))
+  # pipe_system.connect_two_port((8,11,5),(12,0,5))
+  # pipe_system.connect_two_port((16,11,5),(12,0,5))
+  # pipe_system.connect_two_port((0,0,5), (12,0,5))
+  # pipe_system.connect_two_port((4,3,4), (0,0,5))
+  # pipe_system.connect_two_port((4,3,4), (12,0,5))
+  # pipe_system.connect_two_port((4,3,4), (3,0,5))
+  # pipe_system.connect_two_port((12,0,5), (6,1,4))
+  # pipe_system.connect_two_port((15,10,2), (6,1,4))
+  # pipe_system.connect_two_port((20,10,3), (6,1,4))
+  # pipe_system.connect_two_port((0,10,3), (6,1,4))
+
+  pipe_system.unit_dimention = 3
+
+  pipe_system.connect_two_port((35,20,2), (16,11,14))
+  pipe_system.connect_two_port((20,10,13), (16,11,14))
+  pipe_system.connect_two_port((0,10,13), (16,1,4))
 
 
   pipe_system.grid.update_connection_dict()
@@ -257,6 +325,7 @@ if __name__ == '__main__':
   # pipe_system.make_pipe("p", [(0,0,0), (0,0,2)])
   # pipe_system.make_junction("j", (0,0,0), [(0,0,1)])
 
+  pipe_system.fetch_grid_data()
   pipe_system.test_make_everything()
 
 

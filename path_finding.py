@@ -213,6 +213,8 @@ class Grid:
       # {(start_node, end_node) : [path_node_list]}
       self.connection_dict = {}
 
+      self.path_graph = {}
+
     return self._instance
 
     
