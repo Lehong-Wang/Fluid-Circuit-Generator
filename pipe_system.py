@@ -21,7 +21,7 @@ class PipeSystem:
     if not self._instance:
       self._instance = super(PipeSystem, self).__new__(self)
 
-      self.grid_dimention = (20,20,5)
+      self.grid_dimention = (20,20,15)
       # ()
       self.pipe_dimention = (.2, .15)
       # self.junction_dimention = (.4, .2)
@@ -31,11 +31,16 @@ class PipeSystem:
 
       self.grid = p.Grid(self.grid_dimention)
 
+      # {(start_coord, end_coord) : [path_coord_list]}
       self.connection_dict = {}
+      # {junction_coord : [connection_coords]}
       self.junction_dict = {}
+      # {port_coord : [port_tip_grid_path]}
+      self.port_dict = {}
 
       # {(tip_coord, tip_coord) : [(tip_connection_coord, tip_connection_coord), pipe_object]}
       self.pipe_object_dict = {}
+
 
       
     return self._instance
@@ -46,26 +51,78 @@ class PipeSystem:
     print(f"Connecting Ports {start_port_coord} - {end_port_coord}")
     start_tip_coord = (start_port_coord[0], start_port_coord[1], start_port_coord[2]-self.tip_length)
     end_tip_coord = (end_port_coord[0], end_port_coord[1], end_port_coord[2]-self.tip_length)
-    
-    start_grid_coord, end_grid_coord = self.snap_to_grid(start_tip_coord, end_tip_coord)
-    print(f"Corrisponding Grid coord: {start_grid_coord} - {end_grid_coord}")
+
+    direction_sign_x = (end_port_coord[0] - start_port_coord[0]) > 0
+    direction_sign_y = (end_port_coord[1] - start_port_coord[1]) > 0
+
+    if start_port_coord in self.port_dict:
+      real_start_grid_coord = self.port_dict[start_port_coord][2]
+      start_grid_coord = tuple(map(lambda a: a//self.unit_dimention, real_start_grid_coord))
+      print(f"Start port already have real_grid_coord {real_start_grid_coord}")
+    else:
+      start_grid_coord = self.snap_to_grid(start_tip_coord, direction_sign_x, direction_sign_y)
+      real_start_grid_coord = tuple(map(lambda a: a*self.unit_dimention, start_grid_coord))
+      self.port_dict[start_port_coord] = [start_port_coord, start_tip_coord, real_start_grid_coord]
+
+    if end_port_coord in self.port_dict:
+      real_end_grid_coord = self.port_dict[end_port_coord][2]
+      end_grid_coord = tuple(map(lambda a: a//self.unit_dimention, real_end_grid_coord))
+      print(f"End port already have real_grid_coord {real_end_grid_coord}")
+    else:
+      end_grid_coord = self.snap_to_grid(end_tip_coord, not direction_sign_x, not direction_sign_y)
+      real_end_grid_coord = tuple(map(lambda a: a*self.unit_dimention, end_grid_coord))
+      self.port_dict[end_port_coord] = [end_port_coord, end_tip_coord, real_end_grid_coord]
+
+    print(f"Corresponding Grid coord: {start_grid_coord} - {end_grid_coord}")
+
     self.grid.connect_two_node(start_grid_coord, end_grid_coord)
+    
 
-
-
-  def snap_to_grid(self, start_port_coord, end_port_coord):
+  def snap_to_grid(self, coord, direction_sign_x, direction_sign_y):
     dim = self.unit_dimention
-    dir_x = (end_port_coord[0] - start_port_coord[0]) > 0
-    dir_y = (end_port_coord[1] - start_port_coord[1]) > 0
+    dir_x = bool(coord[0]%dim)*direction_sign_x
+    dir_y = bool(coord[1]%dim)*direction_sign_y
+        
+    grid_coord = (int(coord[0]//dim + dir_x), int(coord[1]//dim + dir_y), int(coord[2]//dim))
+
+    # self.print_port_dict()
+
+    while self.grid_coord_in_use(grid_coord):
+      if self.grid_coord_in_use((grid_coord[0]-dir_x, grid_coord[1], grid_coord[2])):
+        if self.grid_coord_in_use((grid_coord[0], grid_coord[1]-dir_y, grid_coord[2])):
+          if self.grid_coord_in_use((grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])):
+            grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2]-1)
+            if grid_coord[2] < 0:
+              print(f"Error: can't find snap point for Tip_Coord{coord}")
+              return
+            continue
+          grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])
+          break
+        grid_coord = (grid_coord[0], grid_coord[1]-dir_y, grid_coord[2])
+        break
+      grid_coord = (grid_coord[0]-dir_x, grid_coord[1], grid_coord[2])
+      break
+
+    real_grid_coord = tuple(map(lambda a: a*dim, grid_coord))
+    print(f"Snap: {coord}-{grid_coord}-{real_grid_coord}")
+    return grid_coord
 
 
-    # if exact on grid, don't modify
-    start_grid_coord = (start_port_coord[0]//dim + bool(start_port_coord[0]%dim)*dir_x, start_port_coord[1]//dim + bool(start_port_coord[1]%dim)*dir_y, start_port_coord[2]//dim)
-    end_grid_coord = (end_port_coord[0]//dim + bool(end_port_coord[0]%dim)*(not dir_x), end_port_coord[1]//dim + bool(end_port_coord[1]%dim)*(not dir_y), end_port_coord[2]//dim)
-    return (start_grid_coord, end_grid_coord)
+  # check both grid.visited and port_dict for if is used
+  def grid_coord_in_use(self, grid_coord):
+    real_grid_coord = tuple(map(lambda a: a*self.unit_dimention, grid_coord))
+    if self.grid.is_visited(grid_coord):
+      return True
+    for key,value in self.port_dict.items():
+      if real_grid_coord in value:
+        print("IN")
+        return True
+    return False
+
 
 
   def fetch_grid_data(self):
+    # get connection_dict
     for key,value in self.grid.connection_dict.items():
       grid_tip_coord = tuple(map(lambda a: a.coord, key))
       real_coord = []
@@ -73,21 +130,64 @@ class PipeSystem:
         real_coord.append(tuple(map(lambda a: a*self.unit_dimention, coord)))
       real_coord = tuple(real_coord)
 
-      grid_path_coord = list(map(lambda a: a.coord, value))
+      grid_path_coord = tuple(map(lambda a: a.coord, value))
       real_path = []
       for coord in grid_path_coord:
-        real_path.append(list(map(lambda a: a*self.unit_dimention, coord)))
+        real_path.append(tuple(map(lambda a: a*self.unit_dimention, coord)))
 
       self.connection_dict[real_coord] = real_path
 
+    # get junction_dict
     for key,value in self.grid.saved_junction.items():
       real_junction_coord = tuple(map(lambda a: a*self.unit_dimention, key.coord))
       real_connection_coord_list = []
-      connection_coord = list(map(lambda a: a.coord, value))
+      connection_coord = tuple(map(lambda a: a.coord, value))
       for coord in connection_coord:
-        real_connection_coord_list.append(list(map(lambda a: a*self.unit_dimention, coord)))
+        real_connection_coord_list.append(tuple(map(lambda a: a*self.unit_dimention, coord)))
       
       self.junction_dict[real_junction_coord] = real_connection_coord_list
+
+    # add port_tip_grid_path to connections
+    for key,value in self.port_dict.items():
+      port_coord = key
+      tip_coord = value[1]
+      grid_coord = value[2]
+
+      for path_key, path_value in self.connection_dict.items():
+        start_grid_coord = path_key[0]
+        end_grid_coord = path_key[1]
+        path = path_value
+        if start_grid_coord == grid_coord:
+          path.insert(0, tip_coord)
+          path.insert(0, port_coord)
+        if end_grid_coord == grid_coord:
+          path.append(tip_coord)
+          path.append(port_coord)
+
+    # change the start/end grid coord to port coord
+    port_list = []
+    grid_list = []
+    for key,value in self.port_dict.items():
+      port_list.append(key)
+      grid_list.append(value[2])
+
+    new_dict = {}
+    for key,value in self.connection_dict.items():
+      new_key = list(key)
+      for i,coord in enumerate(key):
+        if coord in grid_list:
+          index = grid_list.index(coord)
+          new_key[i] = port_list[index]
+      new_dict[tuple(new_key)] = value
+    
+    self.connection_dict = new_dict
+
+
+        
+      
+
+
+
 
 
 
@@ -203,9 +303,6 @@ class PipeSystem:
 
 
 
-
-
-
       
 
   def test_make_everything(self):
@@ -233,8 +330,6 @@ class PipeSystem:
 
 
 
-
-
   def make_fillet(self, coord_list):
     new_coord_list = []
     fillet_size = .7 * (self.pipe_dimention[0] + self.pipe_dimention[1])
@@ -249,8 +344,8 @@ class PipeSystem:
         v1 = tuple(map(lambda a,b: a-b, last_coord, this_coord))
         v2 = tuple(map(lambda a,b: a-b, next_coord, this_coord))
 
-        l_v1 = sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2)
-        l_v2 = sqrt(v2[0]**2 + v2[1]**2 + v2[2]**2)
+        l_v1 = sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2) + 0.001
+        l_v2 = sqrt(v2[0]**2 + v2[1]**2 + v2[2]**2) + 0.001
 
         # dot product
         dot_product = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
@@ -273,9 +368,20 @@ class PipeSystem:
 
 
 
+  def print_connection_dict(self):
+    print("\nConnection dict:")
+    for key,value in self.connection_dict.items():
+      print(f"{key[0]}, {key[1]}: {value}")
 
+  def print_junction_dict(self):
+    print("\nJunction dict:")
+    for key,value in self.junction_dict.items():
+      print(f"Junction: {key}, Connections: {value}")
 
-
+  def print_port_dict(self):
+    print("\nPort dict:")
+    for key,value in self.port_dict.items():
+      print(f"Port: {key}, Path: {value}")
 
 
 
@@ -286,6 +392,8 @@ if __name__ == '__main__':
   bpy.ops.object.delete(use_global=False)
 
   pipe_system = PipeSystem()
+  pipe_system.unit_dimention = 1
+
 
   # pipe_system.connect_two_port((15,10,2), (0,10,3))
   # pipe_system.connect_two_port((2,13,3),(15,10,2))
@@ -307,11 +415,16 @@ if __name__ == '__main__':
   # pipe_system.connect_two_port((20,10,3), (6,1,4))
   # pipe_system.connect_two_port((0,10,3), (6,1,4))
 
-  pipe_system.unit_dimention = 3
 
-  pipe_system.connect_two_port((35,20,2), (16,11,14))
-  pipe_system.connect_two_port((20,10,13), (16,11,14))
-  pipe_system.connect_two_port((0,10,13), (16,1,4))
+  pipe_system.connect_two_port((15.5,10,12.3), (6,11.5,4))
+  pipe_system.connect_two_port((20.5,10.8,13), (6,11.5,4))
+  pipe_system.connect_two_port((0.5,10,13), (6,1,4))
+  pipe_system.connect_two_port((5.5,7,9.9), (6,11.5,4))
+  pipe_system.connect_two_port((5.5,7,9.9), (15.5,10,12.3))
+  pipe_system.connect_two_port((5.5,8,8.7), (0,0,10))
+  pipe_system.connect_two_port((6.5,7,9), (20,0.1,9))
+  pipe_system.connect_two_port((6.5,8,9), (1.5,0.8,9))
+
 
 
   pipe_system.grid.update_connection_dict()
@@ -326,6 +439,14 @@ if __name__ == '__main__':
   # pipe_system.make_junction("j", (0,0,0), [(0,0,1)])
 
   pipe_system.fetch_grid_data()
+
+  # print("Connection Dictionary:")
+  # print(pipe_system.connection_dict)
+  # print("Port Dictionary:")
+  # print(pipe_system.port_dict)
+  pipe_system.print_connection_dict()
+  pipe_system.print_port_dict()
+  pipe_system.print_junction_dict()
   pipe_system.test_make_everything()
 
 
@@ -336,40 +457,6 @@ if __name__ == '__main__':
 
 
 
-
-
-
-
-
-
-# #enable relative imports:
-# if __name__ == '__main__': #makes sure this only happens when you run the script from inside Blender
-    
-#     # INCREASE THIS VALUE IF YOU WANT TO ACCESS MODULES IN PARENT FOLDERS (for using something like "from ... import someModule") 
-#     number_of_parents = 3 # default = 1
-    
-#     original_path = pathlib.Path(bpy.data.filepath)
-#     parent_path = original_path.parent
-    
-#     for i in range(number_of_parents):
-#         parent_path = parent_path.parent
-    
-    
-#     str_parent_path = str(parent_path.resolve()) # remember, paths only work if they're strings
-#     #print(str_parent_path)    
-#     if not str_parent_path in sys.path:
-#         sys.path.append(str_parent_path)
-
-#     # building the correct __package__ name
-#     relative_path = original_path.parent.relative_to(parent_path)
-#     with_dots = '.'.join(relative_path.parts)
-#     #print(with_dots)
-#     __package__ = with_dots
-
-
-# #the relative imports don't have to be in the if clause above, they should work for other scripts that import this file as well.
-# from . import printHello  # a dot is a relative path
-# from .. import something # is in a directory above, only works if number_of_parents is at least 2 
 
 
 

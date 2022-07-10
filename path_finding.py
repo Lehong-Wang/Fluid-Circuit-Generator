@@ -1082,6 +1082,14 @@ if __name__ == '__main__':
   grid.connect_two_node((0,10,3), (6,1,4))
 
 
+
+
+  # grid.connect_two_node((0,0,3), (10,10,4))
+  # grid.connect_two_node((10,10,4), (6,1,4))
+  # grid.connect_two_node((0,10,3), (10,10,4))
+  # grid.connect_two_node((5,10,3), (0,0,3))
+
+
   # path = grid.path_finding((11,9,0),(12,10,5))
   # path_coord = list(map(lambda a: a.coord, path))
   # make_pipe("p", path_coord)
