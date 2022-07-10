@@ -35,7 +35,7 @@ class PipeSystem:
       self.connection_dict = {}
       # {junction_coord : [connection_coords]}
       self.junction_dict = {}
-      # {port_coord : [port_tip_grid_path]}
+      # {port_coord : [port, tip, grid]}
       self.port_dict = {}
 
       # {(tip_coord, tip_coord) : [(tip_connection_coord, tip_connection_coord), pipe_object]}
@@ -45,7 +45,7 @@ class PipeSystem:
       
     return self._instance
 
-
+  # snap to grid, then call grid.connect_two_node()
   def connect_two_port(self, start_port_coord, end_port_coord):
     print("\n")
     print(f"Connecting Ports {start_port_coord} - {end_port_coord}")
@@ -55,6 +55,7 @@ class PipeSystem:
     direction_sign_x = (end_port_coord[0] - start_port_coord[0]) > 0
     direction_sign_y = (end_port_coord[1] - start_port_coord[1]) > 0
 
+    # if port-grid connection not exist, create new one
     if start_port_coord in self.port_dict:
       real_start_grid_coord = self.port_dict[start_port_coord][2]
       start_grid_coord = tuple(map(lambda a: a//self.unit_dimention, real_start_grid_coord))
@@ -76,15 +77,16 @@ class PipeSystem:
     print(f"Corresponding Grid coord: {start_grid_coord} - {end_grid_coord}")
 
     self.grid.connect_two_node(start_grid_coord, end_grid_coord)
-    
 
+
+  # snap to grid towards destination, if not available, check around till z<0
   def snap_to_grid(self, coord, direction_sign_x, direction_sign_y):
     dim = self.unit_dimention
+    # if already on grid, not change
     dir_x = bool(coord[0]%dim)*direction_sign_x
     dir_y = bool(coord[1]%dim)*direction_sign_y
-        
-    grid_coord = (int(coord[0]//dim + dir_x), int(coord[1]//dim + dir_y), int(coord[2]//dim))
 
+    grid_coord = (int(coord[0]//dim + dir_x), int(coord[1]//dim + dir_y), int(coord[2]//dim))
     # self.print_port_dict()
 
     while self.grid_coord_in_use(grid_coord):
@@ -120,7 +122,8 @@ class PipeSystem:
     return False
 
 
-
+  # get connection_dict and saved_junction data from grid
+  # apply unit_dimention and snap to node.coords
   def fetch_grid_data(self):
     # get connection_dict
     for key,value in self.grid.connection_dict.items():
@@ -152,7 +155,7 @@ class PipeSystem:
       port_coord = key
       tip_coord = value[1]
       grid_coord = value[2]
-
+      # check in connection_dict for ports to add
       for path_key, path_value in self.connection_dict.items():
         start_grid_coord = path_key[0]
         end_grid_coord = path_key[1]
@@ -164,7 +167,8 @@ class PipeSystem:
           path.append(tip_coord)
           path.append(port_coord)
 
-    # change the start/end grid coord to port coord
+    # look in connection_dict key 
+    # change the start/end grid coord to port coord if is port
     port_list = []
     grid_list = []
     for key,value in self.port_dict.items():
@@ -185,17 +189,7 @@ class PipeSystem:
 
         
       
-
-
-
-
-
-
-
-
-
-
-
+####################################  make modle  ############################################
 
   
   def make_pipe(self, name, coord_list):
@@ -219,6 +213,7 @@ class PipeSystem:
     curve_object.data.bevel_depth = self.pipe_dimention[0] + self.pipe_dimention[1]
     curve_object.data.bevel_resolution = 2
     curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = self.pipe_dimention[1]
+    # fully select object
     curve_object.select_set(True)
     bpy.context.view_layer.objects.active = curve_object
     bpy.ops.object.convert(target = "MESH")
@@ -238,13 +233,13 @@ class PipeSystem:
       if junction_coord in key:
         connection_object_dict[key] = value
 
-
     for connection_coord in connection_list:
       curve_data = bpy.data.curves.new(name, type = "CURVE")
       curve_data.dimensions = "3D"
 
       polyline = curve_data.splines.new("POLY")
       polyline.points.add(1)
+      # prevent too much overlap
       end_coord = tuple(map(lambda a,b: a + 0.01*(b-a), junction_coord, connection_coord))
       x,y,z = end_coord
       polyline.points[0].co = (x,y,z,1)
@@ -262,15 +257,13 @@ class PipeSystem:
       bpy.context.view_layer.objects.active = curve_object
       bpy.ops.object.convert(target = "MESH")
 
-      junction_modifier_name = "J_C"
+      junction_modifier_name = "Boolean"
       junction_sphere.modifiers.new(junction_modifier_name, "BOOLEAN").object = curve_object
       junction_sphere.modifiers[junction_modifier_name].operation = 'DIFFERENCE'
       junction_sphere.modifiers[junction_modifier_name].solver = "EXACT"
-      # junction_sphere.modifiers[junction_modifier_name].use_self = True
-      # junction_sphere.modifiers[junction_modifier_name].use_hole_tolerant = True
+
       junction_sphere.select_set(True)
       bpy.context.view_layer.objects.active = junction_sphere
-      # bpy.ops.object.modifier_apply(modifier = "BOOLEAN")
       bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
 
       for key,value in connection_object_dict.items():
@@ -282,15 +275,10 @@ class PipeSystem:
           pipe.modifiers.new(modifier_name, "BOOLEAN").object = curve_object
           pipe.modifiers[modifier_name].operation = 'DIFFERENCE'
 
-        # pipe.modifiers[modifier_name].solver = "FAST"
-          # pipe.select_set(True)
-          # bpy.context.view_layer.objects.active = pipe
-        # # bpy.ops.object.modifier_apply(modifier = "BOOLEAN")
-          # bpy.ops.object.modifier_apply(modifier = modifier_name)
-
       # bpy.data.objects.remove(curve_object)
       curve_object.hide_set(True)
 
+    # set all modifier to EXACT, use_self, and use_hole_tolerant
     for key,value in connection_object_dict.items():
       pipe = value[1]
       pipe.select_set(True)
@@ -308,16 +296,16 @@ class PipeSystem:
   def test_make_everything(self):
     for key,value in self.connection_dict.items():
       path_name = f"Path_{key[0]}-{key[1]}"
-      # self.pipe_object_dict.append(self.make_pipe(path_name, list(map(lambda a: a.coord,value))))
       self.pipe_object_dict[(key[0], key[1])] = [(value[1], value[-2]), self.make_pipe(path_name, value)]
     
     for key,value in self.junction_dict.items():
       junction_name = f"Junction_{key}"
       self.make_junction(junction_name, key, value)
 
-    for object in bpy.data.objects:
-      object.select_set(True)
-      bpy.context.view_layer.objects.active = object
+    # mesh clean up
+    for obj in bpy.data.objects:
+      obj.select_set(True)
+      bpy.context.view_layer.objects.active = obj
       bpy.ops.object.mode_set(mode = 'EDIT')
       bpy.ops.mesh.select_all(action='SELECT')
       bpy.ops.mesh.vert_connect_nonplanar(angle_limit=0.01)
@@ -344,7 +332,7 @@ class PipeSystem:
         v1 = tuple(map(lambda a,b: a-b, last_coord, this_coord))
         v2 = tuple(map(lambda a,b: a-b, next_coord, this_coord))
 
-        l_v1 = sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2) + 0.001
+        l_v1 = sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2) + 0.001   # prevent division by 0
         l_v2 = sqrt(v2[0]**2 + v2[1]**2 + v2[2]**2) + 0.001
 
         # dot product
@@ -371,6 +359,7 @@ class PipeSystem:
   def print_connection_dict(self):
     print("\nConnection dict:")
     for key,value in self.connection_dict.items():
+      print("Connection Path:")
       print(f"{key[0]}, {key[1]}: {value}")
 
   def print_junction_dict(self):
@@ -424,6 +413,7 @@ if __name__ == '__main__':
   pipe_system.connect_two_port((5.5,8,8.7), (0,0,10))
   pipe_system.connect_two_port((6.5,7,9), (20,0.1,9))
   pipe_system.connect_two_port((6.5,8,9), (1.5,0.8,9))
+  pipe_system.connect_two_port((10,3.4,9.5), (0.5,10,11.2))
 
 
 
