@@ -1,8 +1,12 @@
+import this
 import bpy
+
+# import os
+# cwd = os.getcwd()
 
 import importlib.util
 import sys
-spec = importlib.util.spec_from_file_location("path_finding.py", "/Users/lhwang/Documents/Blender Python Projects/Git Project Space/Fluid-Circuit-Generator/path_finding.py")
+spec = importlib.util.spec_from_file_location("path_finding.py", "/home/lhwang/Documents/GitHub/Fluid-Circuit-Generator/path_finding.py")
 p = importlib.util.module_from_spec(spec)
 sys.modules["path_finding.py"] = p
 spec.loader.exec_module(p)
@@ -37,9 +41,10 @@ class PipeSystem:
       self.junction_dict = {}
       # {port_coord : [port, tip, grid]}
       self.port_dict = {}
-
       # {(tip_coord, tip_coord) : [(tip_connection_coord, tip_connection_coord), pipe_object]}
       self.pipe_object_dict = {}
+      # {coord : [(dest_coord, [path])]}
+      self.connection_graph = {}
 
 
       
@@ -356,6 +361,119 @@ class PipeSystem:
 
 
 
+
+
+####################################  construct graph  #####################################
+
+  # make a graph of connections from connection_dict
+  def construct_graph(self):
+    self.connection_graph = {}
+
+    for key,value in self.connection_dict.items():
+      start_coord = key[0]
+      end_coord = key[1]
+      path = value
+      inverse_path = []
+      for coord in path:
+        inverse_path.insert(0, coord)
+      
+      if start_coord in self.connection_graph:
+        self.connection_graph[start_coord].append((end_coord, path))
+      else:
+        self.connection_graph[start_coord] = [(end_coord, path)]
+
+      if end_coord in self.connection_graph:
+        self.connection_graph[end_coord].append((start_coord, inverse_path))
+      else:
+        self.connection_graph[end_coord] = [(start_coord, inverse_path)]
+
+
+  # get the full path from two coords
+  def get_path_from_graph(self, start_coord, end_coord):
+    print(f"\nGetting path from {start_coord} to {end_coord}")
+
+    if start_coord not in self.connection_graph:
+      print(f"Error: start_coord {start_coord} not in connection graph")
+      return []
+    if end_coord not in self.connection_graph:
+      print(f"Error: end_coord {end_coord} not in connection graph")
+      return []
+
+    search_queue = []
+    search_queue.append(start_coord)
+    visited_list = []
+    last_visited = {}
+
+    while len(search_queue) != 0:
+      this_coord = search_queue.pop(0)
+
+      if this_coord == end_coord:
+        print("Path Found")
+        # record the full path
+        path = []
+        current_coord = end_coord
+        last_coord = None
+        while current_coord != start_coord:
+          if current_coord != end_coord:
+            current_path = []
+            # get current_path from connection_graph
+            for connection in self.connection_graph[current_coord]:
+              if last_coord == connection[0]:
+                current_path = connection[1][:]   # copy list so it don't affect original list (list is mutable)
+            if len(path) != 0:
+              path.pop(0)
+            path = current_path + path
+          last_coord = current_coord
+          current_coord = last_visited[current_coord]
+          
+        current_path = []
+        for connection in self.connection_graph[current_coord]:
+          if last_coord == connection[0]:
+            current_path = connection[1][:]
+        if len(path) != 0:
+          path.pop(0)
+        path = current_path + path
+
+        print(f"Path: {path}")
+        return path
+      
+      # get neighbors
+      neighbor_list = []
+      for connection in self.connection_graph[this_coord]:
+        neighbor_list.append(connection[0])
+      # print(f"{this_coord} neighbors: {neighbor_list}")
+      
+      for next_coord in neighbor_list:
+        if next_coord not in visited_list:
+          if next_coord not in search_queue:
+            search_queue.append(next_coord)
+            last_visited[next_coord] = this_coord
+            # print(f"\tQueue added {this_coord}")
+      
+      visited_list.append(this_coord)
+    
+    print("Path Not Found")
+    return []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   def print_connection_dict(self):
     print("\nConnection dict:")
     for key,value in self.connection_dict.items():
@@ -371,6 +489,14 @@ class PipeSystem:
     print("\nPort dict:")
     for key,value in self.port_dict.items():
       print(f"Port: {key}, Path: {value}")
+
+  def print_connection_graph(self):
+    print("\nConnection graph:")
+    for key,value in self.connection_graph.items():
+      print(f"\tStart: {key}")
+      for connection in value:
+        print(f"Dest:{connection[0]}, Path:{connection[1]}")
+        # print(f"\tDest:{connection[0]}")
 
 
 
@@ -414,6 +540,7 @@ if __name__ == '__main__':
   pipe_system.connect_two_port((6.5,7,9), (20,0.1,9))
   pipe_system.connect_two_port((6.5,8,9), (1.5,0.8,9))
   pipe_system.connect_two_port((10,3.4,9.5), (0.5,10,11.2))
+  pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
 
 
 
@@ -429,6 +556,9 @@ if __name__ == '__main__':
   # pipe_system.make_junction("j", (0,0,0), [(0,0,1)])
 
   pipe_system.fetch_grid_data()
+  pipe_system.construct_graph()
+
+
 
   # print("Connection Dictionary:")
   # print(pipe_system.connection_dict)
@@ -437,7 +567,21 @@ if __name__ == '__main__':
   pipe_system.print_connection_dict()
   pipe_system.print_port_dict()
   pipe_system.print_junction_dict()
+  pipe_system.print_connection_graph()
+
+
+  path1 = pipe_system.get_path_from_graph((15.5,10,12.3), (6,11.5,4))
+  path2 = pipe_system.get_path_from_graph((0,0,10), (20.5,10.8,13))
+  # path3 = pipe_system.get_path_from_graph((15.5,10,12.3), (6,11.5,4))
+
+
+
   pipe_system.test_make_everything()
+
+  pipe_system.pipe_dimention = (.5,.01)
+  pipe_system.make_pipe("p1", path1)
+  pipe_system.make_pipe("p2", path2)
+
 
 
 
