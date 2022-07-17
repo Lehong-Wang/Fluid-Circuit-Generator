@@ -198,18 +198,22 @@ class Grid:
       self.node_grid = []
       self.node_grid = self.make_grid(self)
 
-      # dictionary of all the path 
-      # {(start_node, end_node) : path_node_list}
+      # store all the ground paths
+      # only ground path can merge together
+      # {(start_node, end_node) : [path_node_list]}
       self.saved_path = {}
+      # store all the junction info
       # {junction_ndoe : [connection_nodes]}
       self.saved_junction = {}
-
+      # store all the tip_ground path
+      # {tip_node : [ground_node, is_start, [path_node_list]]}
       self.tip_ground_table = {}
-      # 
+      # store all the connections
+      # generated after all path are processed
+      # {(start_node, end_node) : [path_node_list]}
       self.connection_dict = {}
 
-      # saved_path only saves bottom path
-      # connection_dict saves path from tip to bottom
+      self.path_graph = {}
 
     return self._instance
 
@@ -1076,6 +1080,14 @@ if __name__ == '__main__':
   grid.connect_two_node((15,10,2), (6,1,4))
   grid.connect_two_node((20,10,3), (6,1,4))
   grid.connect_two_node((0,10,3), (6,1,4))
+
+
+
+
+  # grid.connect_two_node((0,0,3), (10,10,4))
+  # grid.connect_two_node((10,10,4), (6,1,4))
+  # grid.connect_two_node((0,10,3), (10,10,4))
+  # grid.connect_two_node((5,10,3), (0,0,3))
 
 
   # path = grid.path_finding((11,9,0),(12,10,5))
