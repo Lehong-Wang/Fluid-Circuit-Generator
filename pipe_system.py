@@ -1,8 +1,4 @@
-import this
 import bpy
-
-# import os
-# cwd = os.getcwd()
 
 import importlib.util
 import sys
@@ -20,6 +16,7 @@ class PipeSystem:
 
   _instance = None
 
+  # singleton
   def __new__(self):
 
     if not self._instance:
@@ -46,9 +43,8 @@ class PipeSystem:
       # {coord : [(dest_coord, [path])]}
       self.connection_graph = {}
 
-
-      
     return self._instance
+
 
   # snap to grid, then call grid.connect_two_node()
   def connect_two_port(self, start_port_coord, end_port_coord):
@@ -261,16 +257,16 @@ class PipeSystem:
       curve_object.select_set(True)
       bpy.context.view_layer.objects.active = curve_object
       bpy.ops.object.convert(target = "MESH")
-
+      # need exact solver for all
       junction_modifier_name = "Boolean"
       junction_sphere.modifiers.new(junction_modifier_name, "BOOLEAN").object = curve_object
       junction_sphere.modifiers[junction_modifier_name].operation = 'DIFFERENCE'
       junction_sphere.modifiers[junction_modifier_name].solver = "EXACT"
-
+      # fully select before apply
       junction_sphere.select_set(True)
       bpy.context.view_layer.objects.active = junction_sphere
       bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
-
+      # cut from other pipes
       for key,value in connection_object_dict.items():
         pipe = value[1]
         pipe_connections = value[0]
@@ -297,8 +293,8 @@ class PipeSystem:
 
 
       
-
-  def test_make_everything(self):
+  # make all meshes
+  def make_everything(self):
     for key,value in self.connection_dict.items():
       path_name = f"Path_{key[0]}-{key[1]}"
       self.pipe_object_dict[(key[0], key[1])] = [(value[1], value[-2]), self.make_pipe(path_name, value)]
@@ -322,7 +318,7 @@ class PipeSystem:
 
 
 
-
+  # add fillet to turns < 120
   def make_fillet(self, coord_list):
     new_coord_list = []
     fillet_size = .7 * (self.pipe_dimention[0] + self.pipe_dimention[1])
@@ -376,7 +372,7 @@ class PipeSystem:
       inverse_path = []
       for coord in path:
         inverse_path.insert(0, coord)
-      
+      # add connections both ways
       if start_coord in self.connection_graph:
         self.connection_graph[start_coord].append((end_coord, path))
       else:
@@ -399,6 +395,7 @@ class PipeSystem:
       print(f"Error: end_coord {end_coord} not in connection graph")
       return []
 
+    # Breth First Search
     search_queue = []
     search_queue.append(start_coord)
     visited_list = []
@@ -441,14 +438,12 @@ class PipeSystem:
       neighbor_list = []
       for connection in self.connection_graph[this_coord]:
         neighbor_list.append(connection[0])
-      # print(f"{this_coord} neighbors: {neighbor_list}")
       
       for next_coord in neighbor_list:
         if next_coord not in visited_list:
           if next_coord not in search_queue:
             search_queue.append(next_coord)
             last_visited[next_coord] = this_coord
-            # print(f"\tQueue added {this_coord}")
       
       visited_list.append(this_coord)
     
@@ -458,21 +453,7 @@ class PipeSystem:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#########################################  print  ##########################################
 
   def print_connection_dict(self):
     print("\nConnection dict:")
@@ -572,11 +553,10 @@ if __name__ == '__main__':
 
   path1 = pipe_system.get_path_from_graph((15.5,10,12.3), (6,11.5,4))
   path2 = pipe_system.get_path_from_graph((0,0,10), (20.5,10.8,13))
-  # path3 = pipe_system.get_path_from_graph((15.5,10,12.3), (6,11.5,4))
 
 
 
-  pipe_system.test_make_everything()
+  pipe_system.make_everything()
 
   pipe_system.pipe_dimention = (.5,.01)
   pipe_system.make_pipe("p1", path1)
