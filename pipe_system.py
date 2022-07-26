@@ -1,4 +1,4 @@
-import this
+# import this
 import bpy
 
 # import os
@@ -6,7 +6,7 @@ import bpy
 
 import importlib.util
 import sys
-spec = importlib.util.spec_from_file_location("path_finding.py", "/home/lhwang/Documents/GitHub/Fluid-Circuit-Generator/path_finding.py")
+spec = importlib.util.spec_from_file_location("path_finding.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/path_finding.py")
 p = importlib.util.module_from_spec(spec)
 sys.modules["path_finding.py"] = p
 spec.loader.exec_module(p)
