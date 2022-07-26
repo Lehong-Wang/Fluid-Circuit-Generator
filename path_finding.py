@@ -1,18 +1,29 @@
+
+"""
+Path Finding Class
+A star path finding within an imaginary grid
+Also handles merging paths
+"""
+
+import sys
+import os
 import math
 from queue import PriorityQueue
 import bpy
-import sys, os
 
 
 #####################################  Node Class  ###################################
 
 class Node:
+  """
+  Node Object makes up the imaginary grid
+  """
 
   def __init__(self, coord, limit_coord):
     # First check if coordinate is within limit
     if not self.check_valid_coord(coord, limit_coord):
       print(f"Error: Node {coord} is out of limit {limit_coord}")
-      print(f"Error: Node not Created")
+      print("Error: Node not Created")
       # del self
       return
 
@@ -34,9 +45,10 @@ class Node:
     self.update_neighbors()
     # print(f"Node {self.coord} Neighbors: {self.neighbors}")
 
-  
+
 
   def make_neighbors(self):
+    """Add neighbors to Node"""
     primitive_list = []
     # down
     primitive_list.append((self.coord[0], self.coord[1], self.coord[2]-1))
@@ -78,13 +90,14 @@ class Node:
     for coord in primitive_list:
       if self.check_valid_coord(coord, self.limit_coord):
         filtered_list.append(coord)
-    
+
     self.all_neighbors = filtered_list
 
 
 
   # return if G is updated
   def update_FGHL(self, from_node, dest_node):
+    """Helper to update F G H L values"""
     self.H = self.calculate_H(dest_node)
     # print(f"Calculated H {self.coord} -> {dest_node.coord}, dest_h = {self.H}")
     updated = self.update_G(from_node)
@@ -94,6 +107,7 @@ class Node:
 
   # F = G (lenght already traveled) + H (lenght excepted)
   def calculate_F(self):
+    """Helper Function"""
     self.F = self.G + self.H
     # print(f"Calculated F from G + H: {self.F}")
     return self.F
@@ -101,6 +115,7 @@ class Node:
   # max will make it go cross first, then straight (gather same direction segment)
   # plus some real distance so it head toward the target
   def calculate_H(self, dest_node):
+    """Helper Function"""
     x1,y1,z1 = self.coord
     x2,y2,z2 = dest_node.coord
     dest_h = max(abs(x1-x2), abs(y1-y2), abs(z1-z2)) + 0.1*(self.square_root(self.coord, dest_node.coord))
@@ -108,6 +123,7 @@ class Node:
 
   # return if G is updated (decreased)
   def update_G(self, from_node):
+    """Helper Function"""
     dis = self.get_from_dis(from_node)
     new_g = from_node.G + dis
     # print(f"Calculated G from Node {from_node.coord} to {self.coord}, new_g = {new_g}")
@@ -118,13 +134,15 @@ class Node:
       return True
     # print(f"G Not updated")
     return False
- 
+
   def update_last_visited(self, from_node):
+    """Helper Function"""
     # print(f"Update last_visited: {self.last_visited} -> {from_node.coord}")
     self.last_visited = from_node
     return
 
   def update_neighbors(self):
+    """Helper Function"""
     self.neighbors = []
     for coord in self.all_neighbors:
       if self.blocked_neighbors.count(coord) == 0:
@@ -133,6 +151,7 @@ class Node:
 
   # reward for heading down and staying on the bottom
   def get_from_dis(self, from_node):
+    """Helper Function"""
     # 1 -> 2, from -> this
     x1,y1,z1 = from_node.coord
     x2,y2,z2 = self.coord
@@ -140,12 +159,13 @@ class Node:
     dis = self.square_root(from_node.coord, self.coord)
     if (z1 - z2) == 1: # heading down
       dis = self.square_root((x1,y1,z1), (x2,y2,z1))
-    if (z2 == 0):
+    if z2 == 0:
       dis -= .1
     return dis
 
   # add node to blocked_neighbors list
   def add_block_neighbors(self, neighbor):
+    """Helper Function"""
     if self.all_neighbors.count(neighbor.coord) == 0:
       print(f"Error: {neighbor.coord} is not in neighbors list of Node {self.coord}")
       return None
@@ -158,6 +178,7 @@ class Node:
 
   # check if coord is in valid range
   def check_valid_coord(self, coord, limit_coord):
+    """Helper Function"""
     valid = True
     for i in range(len(coord)):
       valid &= (coord[i] <= limit_coord[i] and coord[i] >= 0)
@@ -165,6 +186,7 @@ class Node:
 
   # helper for calculating distance between two nodes
   def square_root(self, coord_a, coord_b):
+    """Helper Function"""
     a_x, a_y, a_z = coord_a
     b_x, b_y, b_z = coord_b
     dis = math.sqrt((a_x - b_x) ** 2 + (a_y - b_y) ** 2 + (a_z - b_z) ** 2)
@@ -172,6 +194,7 @@ class Node:
 
   # reset node for next path finding
   def reset_node(self):
+    """Reset the node after each path finding"""
     self.F = float("inf")
     self.G = float("inf")
     self.H = float("inf")
@@ -185,6 +208,11 @@ class Node:
 #####################################  Grid Class  #########################################
 
 class Grid:
+  """
+  Grid Class
+  The Grid is graph with nodes(Node object) and coonections(Node neighbors)
+  Impliment A star path finding on this graph
+  """
   # singleton design pattern
   # only one Grid object can exist at a time
   _instance = None
@@ -217,9 +245,10 @@ class Grid:
 
     return self._instance
 
-    
+
   # make a grid of nodes
   def make_grid(self):
+    """Construct the imaginary as a list of list of list of nodes"""
     X_list = []
     for x in range(self.dimention[0]+1):
       Y_list = []
@@ -236,6 +265,7 @@ class Grid:
 
   # A* path finding
   def path_finding(self, start_coord, end_coord):
+    """A Star path finding"""
     print(f"Looking for path from {start_coord} to {end_coord}")
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
     end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
@@ -245,7 +275,7 @@ class Grid:
       return []
     if end_node.visited:
       print(f"Error: End Node {end_node.coord} is already in use")
-      return []  
+      return []
 
     search_queue = PriorityQueue()
     # list that keep track of the nodes in the queue
@@ -284,7 +314,7 @@ class Grid:
             search_queue.put((1*neighbor_node.H + 0.2*neighbor_node.G, node_count, neighbor_node))
             search_list.append(neighbor_node)
             # print(f"Added Node {neighbor_node.coord}, F = {neighbor_node.F}, node_count = {node_count}")
-          
+
       this_node.visited = True
       processed_node_count += 1
       # print(f"Processed Node {this_node.coord}")
@@ -295,6 +325,7 @@ class Grid:
 
   # get the path by tracing backwards from end
   def record_path(self, start_node, end_node):
+    """Collect the path after path finding"""
     # print(f"Recording Path from {start_node.coord} to {end_node.coord}")
     this_node = end_node
     path_node_list = []
@@ -323,8 +354,8 @@ class Grid:
     for key,value in self.saved_path.items():
       this_saved_path = value
       for node in this_saved_path:
-        node.visited = True      
-    
+        node.visited = True
+
     for key,value in self.tip_ground_table.items():
       this_saved_path = value[2]
       for node in this_saved_path:
@@ -337,6 +368,7 @@ class Grid:
 
   # cut all the crossing/ half crossing connections
   def cut_all_crossover(self):
+    """Prevent path from intersecting with each other"""
     for key, value in self.saved_path.items():
       this_saved_path = value
       node_coord_list = []
@@ -345,7 +377,7 @@ class Grid:
       for i, this_node in enumerate(this_saved_path):
         if i == len(this_saved_path) - 1:
           # print(f"All cross are trimmed for path {node_coord_list}")
-          break       
+          break
         next_node = this_saved_path[i+1]
 
         x1, y1, z1 = this_node.coord
@@ -434,6 +466,7 @@ class Grid:
 
   # helper for cutting connections between two nodes
   def unlink_nodes(self, coord1, coord2):
+    """Helper Function"""
     x1, y1, z1 = coord1
     x2, y2, z2 = coord2
 
@@ -442,14 +475,18 @@ class Grid:
 
     node1.add_block_neighbors(node2)
     node2.add_block_neighbors(node1)
-    # print(f"Unlinked Node {node1.coord} and {node2.coord}") 
+    # print(f"Unlinked Node {node1.coord} and {node2.coord}")
     return
 
 
   #####################################  junction  ###########################
-  
+
   # kind of jump table to determin what to do
   def add_path(self, start_coord, end_coord):
+    """
+    Top level function for adding a path
+    This function decides what function to use based on the conditions
+    """
     print("\n")
     print(f"Adding a new path from {start_coord} to {end_coord}")
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
@@ -459,17 +496,17 @@ class Grid:
     for key in self.saved_path:
       past_end_node_list.append(key[0])
       past_end_node_list.append(key[1])
-    
+
     start_node_in_list = bool(past_end_node_list.count(start_node))
     end_node_in_list = bool(past_end_node_list.count(end_node))
-    
+
     # both new, find path
     if not (start_node_in_list or end_node_in_list):
       print(f"Both Node {start_node.coord}, {end_node.coord} are new, create new path")
       return self.path_finding(start_node.coord, end_node.coord)
 
     # start is existing path, flip and create junction
-    if start_node_in_list and not end_node_in_list:      
+    if start_node_in_list and not end_node_in_list:
       print(f"Node {start_node.coord} is end for other tubing, create junction")
       # if start is to_join(fliped), also flip is_start and path
       for key,value in self.tip_ground_table.items():
@@ -483,16 +520,16 @@ class Grid:
       return self.create_junction_path(end_node.coord, start_node.coord)
 
     # end is existing path, create junction
-    if end_node_in_list and not start_node_in_list:      
+    if end_node_in_list and not start_node_in_list:
       print(f"Node {end_node.coord} is end for other tubing, create junction")
       return self.create_junction_path(start_node.coord, end_node.coord)
 
     # both are existing path, create bridge
-    if start_node_in_list and end_node_in_list: 
+    if start_node_in_list and end_node_in_list:
       duplicate = False
       for end_point_tuple in self.saved_path:
         duplicate |= (start_node in end_point_tuple) and (end_node in end_point_tuple)
-      
+
       if duplicate:
         print(f"Error: Path from {start_node.coord} to {end_node.coord} already exists")
         print("Nothing Added")
@@ -507,6 +544,7 @@ class Grid:
   # return the created junction path
   # reset_grid at the end
   def create_junction_path(self, start_coord, end_coord):
+    """Create a branch of from exsiting path"""
     print(f"Looking for joinction path from {start_coord}(new) to {end_coord}")
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
     end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
@@ -515,7 +553,7 @@ class Grid:
     for key in self.saved_path:
       past_end_node_list.append(key[0])
       past_end_node_list.append(key[1])
-    
+
     if past_end_node_list.count(end_node) == 0:
       print(f"Error: End coord {end_node.coord} is not a existing path end")
       return []
@@ -523,7 +561,7 @@ class Grid:
     if start_node.visited:
       print(f"Error: Start Node {start_node.coord} is already in use")
       return []
-    
+
     original_path_start_node = None
     original_path_end_node = None
     path_to_join = []
@@ -568,14 +606,15 @@ class Grid:
     self.reset_grid()
     return new_juction_path
 
-  
+
   # bridge two existing path, store result in saved_path, return bridge path
   # reset_grid at the end
   def create_bridge_path(self, start_coord, end_coord):
+    """Create bridge between two existing path"""
     print(f"Looking for bridging between path: {start_coord}(one path) to {end_coord}(another path)")
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
     end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
-    
+
     # get the paths to bridge
     past_end_node_list = []
     for key in self.saved_path:
@@ -583,11 +622,11 @@ class Grid:
       past_end_node_list.append(key[1])
     if past_end_node_list.count(start_node) == 0:
       print(f"Error: End coord {start_node.coord} is not a existing path end")
-      return []   
+      return []
     if past_end_node_list.count(end_node) == 0:
       print(f"Error: End coord {end_node.coord} is not a existing path end")
       return []
-    
+
     start_bridge_path = None
     end_bridge_path = None
     start_bridge_key = None
@@ -601,9 +640,9 @@ class Grid:
         end_bridge_key = key
     if start_bridge_path is end_bridge_path:
       print(f"Error: Path from {start_node.coord} to {end_node.coord} already exists")
-      print("Nothing Added")   
+      print("Nothing Added")
       return []
-    
+
     print(f"Start Node {start_node.coord} -> Path {list(map(lambda a: a.coord, start_bridge_path))}")
     print(f"End Node {end_node.coord} -> Path {list(map(lambda a: a.coord, end_bridge_path))}")
     if len(start_bridge_path) < 3 or len(end_bridge_path) < 3:
@@ -637,7 +676,7 @@ class Grid:
     start_bridge_connection_nodes.append(new_start_bridge_connection_node)
     end_bridge_connection_nodes = self.split_path(end_bridge_key, end_bridge_node)
     end_bridge_connection_nodes.append(new_end_bridge_connection_node)
-    
+
     self.saved_junction[start_bridge_node] = start_bridge_connection_nodes
     print(f"Junction Added: {start_bridge_node.coord}")
     print(f"Connection points: {list(map(lambda a: a.coord, start_bridge_connection_nodes))}")
@@ -653,6 +692,7 @@ class Grid:
   # store two new path in saved_path and remove original one
   # junction only generate on ground_ground path which is in save_path
   def split_path(self, path_key, split_node):
+    """Helper Function"""
     print(f"Spliting path between {list(map(lambda a: a.coord, path_key))} with Node {split_node.coord}")
     start_node = path_key[0]
     end_node = path_key[1]
@@ -669,17 +709,18 @@ class Grid:
     new_path_split_end = path_to_split[index:len(path_to_split)+1]
 
     self.saved_path[(start_node, split_node)] = new_path_start_split
-    self.saved_path[(split_node, end_node)] = new_path_split_end 
+    self.saved_path[(split_node, end_node)] = new_path_split_end
     self.delete_path(start_node.coord, end_node.coord, True)
     start_connection_node = path_to_split[index-1]
     end_connection_node = path_to_split[index+1]
     return [start_connection_node, end_connection_node]
 
-  
+
   # delete a path from saved_path
   # also handles the junction node after deleting the path
   # only used when spliting path for deleting the orginal path
   def delete_path(self, start_coord, end_coord, keep_junction = False):
+    """Helper Function"""
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
     end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
     key_to_delete = None
@@ -711,6 +752,7 @@ class Grid:
 
 
   def delete_junction_connection(self, junction_node, connection_node):
+    """Helper Function"""
     print(f"Deleting junction {junction_node.coord} connection {connection_node.coord}")
     for key, value in self.saved_junction.items():
       if key is junction_node:
@@ -722,7 +764,7 @@ class Grid:
             return
         print(f"Error: Connection Not Exist in connection list: {list(map(lambda a: a.coord, value))}")
         return
-    print(f"Error: Junction Not Exist")
+    print("Error: Junction Not Exist")
 
 
 
@@ -732,15 +774,19 @@ class Grid:
   ##################################   connect two points  ####################################
 
   # this will generate a path that goes to ground first, find path, and go up
-  # save_path stores ground_ground path, 
+  # save_path stores ground_ground path,
   # temporary data from path_finding are removed immediately and grid reset
   # tip_ground_table stores tip_ground path
   # saved_junction stores the junction info generated
   def connect_two_node(self, start_coord, end_coord):
+    """
+    Wrapper function used for connecting two grid coordinates
+    Use this for creating connections / find paths
+    """
     print(f"\nConnecting Node {start_coord} and Node {end_coord} with default path")
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
     end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
-    
+
     direction_sign_x = (end_node.coord[0] - start_node.coord[0]) > 0
     direction_sign_y = (end_node.coord[1] - start_node.coord[1]) > 0
     dir_x = 2*direction_sign_x - 1
@@ -762,7 +808,7 @@ class Grid:
       print(f"Start-Ground path from {start_node.coord} to {start_ground_node.coord} is: {list(map(lambda a: a.coord, start_ground_path))}")
       self.tip_ground_table[start_node] = [start_ground_node, True, start_ground_path]
       start_ground_node_is_new = True
-    
+
     if end_node in self.tip_ground_table:
       end_ground_node = self.tip_ground_table[end_node][0]
       print(f"End Node {end_node.coord} is already in tip_ground_table")
@@ -792,6 +838,7 @@ class Grid:
 
 
   def is_visited(self, coord):
+    """Helper Function"""
     try:
       node = self.node_grid[coord[0]][coord[1]][coord[2]]
     except IndexError:
@@ -801,6 +848,7 @@ class Grid:
 
   # given a node, return the ground node
   def find_ground_node(self, node, dir_x, dir_y):
+    """Find the coorisponding ground node for a given coordinate"""
     print(f"Looking for ground node for Node {node.coord} with dir_x = {dir_x}, dir_y = {dir_y}")
     ground_node = self.node_grid[node.coord[0]][node.coord[1]][0]
     while ground_node.visited:
@@ -820,6 +868,7 @@ class Grid:
 
   # a collection of all connections, combine path like start_ground and ground_ground
   def update_connection_dict(self):
+    """Collect the connections after finding a path"""
     self.connection_dict.clear()
     self.connection_dict.update(self.saved_path)
 
@@ -852,7 +901,7 @@ class Grid:
                   print(f"Retreved whole path: {ground_path[-1].coord}-{tip_node.coord}, path: {list(map(lambda a: a.coord, whole_path))}")
                   self.connection_dict[(ground_path[0], tip_node)] = whole_path
                   break
-            
+
             if len(ground_path) == 0:
               print(f"Error: Can't find ground path of path_key {list(map(lambda a: a.coord, path_key))}")
           else:
@@ -888,6 +937,7 @@ class Grid:
 
   # eliminate useless sharp turns, only affect connection_dict
   def smooth_out_path(self):
+    """Smooth the path a bit"""
     for key,value in self.connection_dict.items():
       this_path = value
       to_remove_list = []
@@ -914,16 +964,21 @@ class Grid:
 
         print(f"Smoothed Node {node.coord} out of Path {list(map(lambda a: a.coord, key))}")
       self.connection_dict[key] = this_path
-          
+
+
+
+###############################  Print Helpers  #################################
 
 
   def print_saved_path(self):
+    """Helper Function"""
     print("\n")
     for key, value in self.saved_path.items():
       print("Saved Path:")
       print(f"{list(map(lambda a: a.coord, key))} : {list(map(lambda a: a.coord, value))}")
 
   def print_saved_junction(self):
+    """Helper Function"""
     print("\n")
     for key,value in self.saved_junction.items():
       end_connection_list = value
@@ -931,6 +986,7 @@ class Grid:
       print(f"Connection points: {list(map(lambda a: a.coord, end_connection_list))}")
 
   def print_tip_ground_table(self):
+    """Helper Function"""
     print("\n")
     for key,value in self.tip_ground_table.items():
       tip_node = key
@@ -941,6 +997,7 @@ class Grid:
       print(f"Path: {list(map(lambda a: a.coord, path))}")
 
   def print_connection_dict(self):
+    """Helper Function"""
     print("\n")
     for key, value in self.connection_dict.items():
       print("Connection:")
@@ -959,12 +1016,14 @@ class Grid:
 
 # test algorithm by making make-shift tube and junction
 class test_path_finding():
+  """This class have method to make simple tubings and junctions for testing purposes"""
 
   def __init__(self, grid):
     self.grid = grid
 
   def make_pipe(self, name, dot_list):
-    if (len(dot_list) < 2):
+    """Make simple pipes"""
+    if len(dot_list) < 2:
       print(f"Dot list {dot_list} too short")
       return
 
@@ -976,7 +1035,7 @@ class test_path_finding():
     for i, coord in enumerate(dot_list):
       x,y,z = coord
       polyline.points[i].co = (x,y,z,1)
-    
+
     curve_object = bpy.data.objects.new(name, curve_data)
     bpy.context.collection.objects.link(curve_object)
 
@@ -988,6 +1047,7 @@ class test_path_finding():
 
 
   def make_junction(self, coord, connection_list):
+    """Make simple junctions"""
     bpy.ops.mesh.primitive_cube_add(size = .7)
     cube = bpy.context.active_object
     cube.location = coord
@@ -1000,20 +1060,21 @@ class test_path_finding():
 
 
   def make_everything(self):
+    """Make all modules"""
     pipe_list = []
     junction_list = []
 
     for key,value in self.grid.connection_dict.items():
       this_pipe = list(map(lambda a: a.coord, value))
       pipe_list.append(this_pipe)
-    
+
     for key,value in self.grid.saved_junction.items():
       this_junction = [key.coord, list(map(lambda a: a.coord, value))]
       junction_list.append(this_junction)
 
     for i,pipe in enumerate(pipe_list):
       self.make_pipe(f"Pipe{i}", pipe)
-    
+
     for i,junction_struct in enumerate(junction_list):
       self.make_junction(junction_struct[0], junction_struct[1])
 
@@ -1026,11 +1087,13 @@ class test_path_finding():
 
 # Disable
 def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
+  """Block terminal outputs"""
+  sys.stdout = open(os.devnull, 'w')
 
 # Restore
 def enablePrint():
-    sys.stdout = sys.__stdout__
+  """Enable terminal outputs"""
+  sys.stdout = sys.__stdout__
 
 
 

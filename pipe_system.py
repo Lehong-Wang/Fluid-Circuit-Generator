@@ -1,22 +1,29 @@
-# import this
+
+
+"""
+Pipe System
+Interface between imaginary grid and real world coordinates
+"""
+
+import sys
+from math import sqrt
+import importlib.util
 import bpy
 
-# import os
-# cwd = os.getcwd()
-
-import importlib.util
-import sys
 spec = importlib.util.spec_from_file_location("path_finding.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/path_finding.py")
 p = importlib.util.module_from_spec(spec)
 sys.modules["path_finding.py"] = p
 spec.loader.exec_module(p)
 
-from math import sqrt
 
 
 
 
 class PipeSystem:
+  """
+  PipeSystem object
+  Only one can exist, have one Grid object within
+  """
 
   _instance = None
 
@@ -46,12 +53,19 @@ class PipeSystem:
       # {coord : [(dest_coord, [path])]}
       self.connection_graph = {}
 
-
-      
     return self._instance
+
+
 
   # snap to grid, then call grid.connect_two_node()
   def connect_two_port(self, start_port_coord, end_port_coord):
+    """
+    Top level function
+    Use this to connect two ports
+      Convert real coordinates to grid coordinates
+      Connect grid coodinates with Grid Object functions
+    """
+
     print("\n")
     print(f"Connecting Ports {start_port_coord} - {end_port_coord}")
     start_tip_coord = (start_port_coord[0], start_port_coord[1], start_port_coord[2]-self.tip_length)
@@ -86,6 +100,7 @@ class PipeSystem:
 
   # snap to grid towards destination, if not available, check around till z<0
   def snap_to_grid(self, coord, direction_sign_x, direction_sign_y):
+    """Find the corrisponding ground coordinate for a real world coordinate"""
     dim = self.unit_dimention
     # if already on grid, not change
     dir_x = bool(coord[0]%dim)*direction_sign_x
@@ -117,6 +132,7 @@ class PipeSystem:
 
   # check both grid.visited and port_dict for if is used
   def grid_coord_in_use(self, grid_coord):
+    """Helper Function"""
     real_grid_coord = tuple(map(lambda a: a*self.unit_dimention, grid_coord))
     if self.grid.is_visited(grid_coord):
       return True
@@ -130,6 +146,7 @@ class PipeSystem:
   # get connection_dict and saved_junction data from grid
   # apply unit_dimention and snap to node.coords
   def fetch_grid_data(self):
+    """Get path data from Grid Object after all path finding is finished"""
     # get connection_dict
     for key,value in self.grid.connection_dict.items():
       grid_tip_coord = tuple(map(lambda a: a.coord, key))
@@ -152,7 +169,7 @@ class PipeSystem:
       connection_coord = tuple(map(lambda a: a.coord, value))
       for coord in connection_coord:
         real_connection_coord_list.append(tuple(map(lambda a: a*self.unit_dimention, coord)))
-      
+
       self.junction_dict[real_junction_coord] = real_connection_coord_list
 
     # add port_tip_grid_path to connections
@@ -172,7 +189,7 @@ class PipeSystem:
           path.append(tip_coord)
           path.append(port_coord)
 
-    # look in connection_dict key 
+    # look in connection_dict key
     # change the start/end grid coord to port coord if is port
     port_list = []
     grid_list = []
@@ -188,17 +205,18 @@ class PipeSystem:
           index = grid_list.index(coord)
           new_key[i] = port_list[index]
       new_dict[tuple(new_key)] = value
-    
+
     self.connection_dict = new_dict
 
 
-        
-      
+
+
 ####################################  make modle  ############################################
 
-  
+
   def make_pipe(self, name, coord_list):
-    if (len(coord_list) < 2):
+    """Make pipe module from given list of coordinates"""
+    if len(coord_list) < 2:
       print(f"Error: Dot list {coord_list} too short")
       return
     coord_list = self.make_fillet(coord_list)
@@ -211,7 +229,7 @@ class PipeSystem:
     for i, coord in enumerate(coord_list):
       x,y,z = coord
       polyline.points[i].co = (x,y,z,1)
-    
+
     curve_object = bpy.data.objects.new(name, curve_data)
     bpy.context.collection.objects.link(curve_object)
 
@@ -226,7 +244,7 @@ class PipeSystem:
 
 
   def make_junction(self, name, junction_coord, connection_list):
-
+    """Create junction module from pipe locations"""
     bpy.ops.mesh.primitive_uv_sphere_add(radius = 1*(self.pipe_dimention[0] + self.pipe_dimention[1]), segments=16, ring_count=8)
     junction_sphere = bpy.context.active_object
     junction_sphere.name = name
@@ -250,7 +268,7 @@ class PipeSystem:
       polyline.points[0].co = (x,y,z,1)
       x,y,z = connection_coord
       polyline.points[1].co = (x,y,z,1)
-    
+
       curve_object = bpy.data.objects.new(name, curve_data)
       bpy.context.collection.objects.link(curve_object)
 
@@ -296,13 +314,14 @@ class PipeSystem:
 
 
 
-      
 
-  def test_make_everything(self):
+
+  def make_everything(self):
+    """Make all the modules after all the calculations are finished"""
     for key,value in self.connection_dict.items():
       path_name = f"Path_{key[0]}-{key[1]}"
       self.pipe_object_dict[(key[0], key[1])] = [(value[1], value[-2]), self.make_pipe(path_name, value)]
-    
+
     for key,value in self.junction_dict.items():
       junction_name = f"Junction_{key}"
       self.make_junction(junction_name, key, value)
@@ -324,6 +343,7 @@ class PipeSystem:
 
 
   def make_fillet(self, coord_list):
+    """Make fillet in pipe for turns < 120 degrees"""
     new_coord_list = []
     fillet_size = .7 * (self.pipe_dimention[0] + self.pipe_dimention[1])
 
@@ -345,18 +365,18 @@ class PipeSystem:
         cos = dot_product / (l_v1 * l_v2)
 
         # angle > 120
-        if (cos < -.5):
+        if cos < -.5:
           new_coord_list.append(this_coord)
         else:
-          d1 = tuple(map(lambda a: a/l_v1*fillet_size, v1)) 
-          d2 = tuple(map(lambda a: a/l_v2*fillet_size, v2)) 
+          d1 = tuple(map(lambda a: a/l_v1*fillet_size, v1))
+          d2 = tuple(map(lambda a: a/l_v2*fillet_size, v2))
 
           new_coord1 = tuple(map(lambda a,b: a+b, this_coord, d1))
           new_coord2 = tuple(map(lambda a,b: a+b, this_coord, d2))
 
           new_coord_list.append(new_coord1)
           new_coord_list.append(new_coord2)
-        
+
     return new_coord_list
 
 
@@ -367,6 +387,7 @@ class PipeSystem:
 
   # make a graph of connections from connection_dict
   def construct_graph(self):
+    """Construct a graph of connections from path finding results"""
     self.connection_graph = {}
 
     for key,value in self.connection_dict.items():
@@ -376,7 +397,7 @@ class PipeSystem:
       inverse_path = []
       for coord in path:
         inverse_path.insert(0, coord)
-      
+
       if start_coord in self.connection_graph:
         self.connection_graph[start_coord].append((end_coord, path))
       else:
@@ -390,6 +411,7 @@ class PipeSystem:
 
   # get the full path from two coords
   def get_path_from_graph(self, start_coord, end_coord):
+    """Triverse the graph to find path between two real world coordinates"""
     print(f"\nGetting path from {start_coord} to {end_coord}")
 
     if start_coord not in self.connection_graph:
@@ -425,7 +447,7 @@ class PipeSystem:
             path = current_path + path
           last_coord = current_coord
           current_coord = last_visited[current_coord]
-          
+
         current_path = []
         for connection in self.connection_graph[current_coord]:
           if last_coord == connection[0]:
@@ -436,61 +458,52 @@ class PipeSystem:
 
         print(f"Path: {path}")
         return path
-      
+
       # get neighbors
       neighbor_list = []
       for connection in self.connection_graph[this_coord]:
         neighbor_list.append(connection[0])
       # print(f"{this_coord} neighbors: {neighbor_list}")
-      
+
       for next_coord in neighbor_list:
         if next_coord not in visited_list:
           if next_coord not in search_queue:
             search_queue.append(next_coord)
             last_visited[next_coord] = this_coord
             # print(f"\tQueue added {this_coord}")
-      
+
       visited_list.append(this_coord)
-    
+
     print("Path Not Found")
     return []
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+###############################  Print Helpers  #################################
 
 
   def print_connection_dict(self):
+    """Helper function"""
     print("\nConnection dict:")
     for key,value in self.connection_dict.items():
       print("Connection Path:")
       print(f"{key[0]}, {key[1]}: {value}")
 
   def print_junction_dict(self):
+    """Helper function"""
     print("\nJunction dict:")
     for key,value in self.junction_dict.items():
       print(f"Junction: {key}, Connections: {value}")
 
   def print_port_dict(self):
+    """Helper function"""
     print("\nPort dict:")
     for key,value in self.port_dict.items():
       print(f"Port: {key}, Path: {value}")
 
   def print_connection_graph(self):
+    """Helper function"""
     print("\nConnection graph:")
     for key,value in self.connection_graph.items():
       print(f"\tStart: {key}")
@@ -576,7 +589,7 @@ if __name__ == '__main__':
 
 
 
-  pipe_system.test_make_everything()
+  pipe_system.make_everything()
 
   pipe_system.pipe_dimention = (.5,.01)
   pipe_system.make_pipe("p1", path1)

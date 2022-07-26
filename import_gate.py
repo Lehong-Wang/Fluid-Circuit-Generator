@@ -1,13 +1,24 @@
-import bpy
+
+"""
+Import logic gate design as stl and construct the modle in Blender
+Also need to provide port position and connection info etc in the form of json file
+"""
+
 
 import json
 from os.path import exists as file_exists
 import os
-from math import radians, sin, cos, pi
+from math import radians, sin, cos
 import numpy as np
+
+import bpy
 
 
 class LogicGate:
+  """
+  Logic Gate object
+  Provide stl file, json file (optional) during decliration
+  """
 
   def __init__(self, name, stl_path, json_path = None):
     self.gate_obj = None
@@ -15,7 +26,7 @@ class LogicGate:
     self.stl_path = stl_path
     self.json_path = os.path.splitext(self.stl_path)[0]+".json"
 
-    if json_path != None:
+    if json_path is not None:
       self.json_path = json_path
 
     self.default_dimention = None
@@ -48,6 +59,7 @@ class LogicGate:
 
 
   def write_to_json(self, file_name = None):
+    """Write current object info to json"""
     self.json_data = {}
     self.json_data["Name"] = self.name
     self.json_data["Object Dimension"] = tuple(self.gate_obj.dimensions)
@@ -70,6 +82,7 @@ class LogicGate:
 
 
   def load_from_json(self, file_name = None):
+    """Load info from json"""
     if not file_name:
       file_name = self.json_path
     else:
@@ -90,6 +103,7 @@ class LogicGate:
 
 
   def reconstruct_obj(self):
+    """Reconstruct the model from current data"""
     # delete previous object
     try:
       bpy.data.objects.remove(self.gate_obj)
@@ -114,12 +128,12 @@ class LogicGate:
     self.gate_obj.rotation_euler = self.obj_placement_data[1]
     self.gate_obj.dimensions = tuple(map(lambda x,y: x*y, self.default_dimention, self.obj_placement_data[2]))
     print(f"New Object at {self.gate_obj.location}, with rotation: {self.gate_obj.rotation_euler}, dimensions: {self.gate_obj.dimensions}")
-    self.recalculte_nozzle_pos()
+    self.recalculte_port_abs_pos()
 
 
   # apply transformations to relative nuzzle pos
-  def recalculte_nozzle_pos(self):
-
+  def recalculte_port_abs_pos(self):
+    """Recalculate the absolute port position"""
     print(f"Relative Port Pos for gate {self.name}: {self.port_dict.items()}")
 
     # Linear Algibra, Euler rotation
@@ -152,24 +166,25 @@ class LogicGate:
     print("Absolute Nozzle Pos recalculated")
 
 
-  # def save_placement_data(self):
-  #   """Helper to update obj_placement_data"""
-  #   self.obj_placement_data = (tuple(self.gate_obj.location), tuple(self.gate_obj.rotation_euler), tuple(self.gate_obj.scale))
 
   def move_gate(self, x_loc, y_loc, z_loc):
+    """Move gate"""
     self.obj_placement_data[0] = (x_loc, y_loc, z_loc)
     print(f"Gate {self.name} Location set to {self.obj_placement_data[0]}")
     self.reconstruct_obj()
 
   def rotate_gate(self, x_angle, y_angle, z_angle):
+    """Rotate gate"""
     self.obj_placement_data[1] = (radians(x_angle), radians(y_angle), radians(z_angle))
     print(f"Gate {self.name} Rotation set to {self.obj_placement_data[1]}(rad), {(x_angle, y_angle, z_angle)}(deg)")
     self.reconstruct_obj()
 
   def scale_gate(self, x_scale, y_scale, z_scale):
+    """Scale gate"""
     self.obj_placement_data[2] = (x_scale, y_scale, z_scale)
     print(f"Gate {self.name} Scale set to {self.obj_placement_data[2]}")
     self.reconstruct_obj()
+
 
 
 if __name__ == '__main__':
