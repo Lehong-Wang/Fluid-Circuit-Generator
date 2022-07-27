@@ -53,7 +53,7 @@ class GateAssembly:
     for group in self.connection_group_list:
       if gate_port_start in group:
         start_in_group = group
-      if gate_port_end in self.connection_group_list:
+      if gate_port_end in group:
         end_in_group = group
 
     # both new
@@ -67,6 +67,7 @@ class GateAssembly:
       start_in_group.append(gate_port_end)
     # in same group
     elif start_in_group and end_in_group and start_in_group is end_in_group:
+      print(f"WARNING: Connection already exists between {gate_port_start} and {gate_port_end}")
       return
     # in different group
     elif start_in_group and end_in_group and start_in_group is not end_in_group:
@@ -137,10 +138,8 @@ class GateAssembly:
 
   def round_coord(self, coord):
     """Helper function"""
-    try:
-      return tuple(map(lambda x: round(x,2), coord))
-    except TypeError:
-      return coord
+    return tuple(map(lambda x: round(x,2), coord))
+
 
 
 
@@ -164,8 +163,13 @@ if __name__ == '__main__':
   a.add_connection((gate1.name, "Cube"), ("g2", "Cube"))
   a.add_connection(("g1", "Ring"), ("g2", "Ring"))
   a.add_connection(("g2", "Ring"), ("g2", "IcoSphere"))
+  print(a.connection_group_list)
+
+  a.add_connection(("g1", "Ring"), ("g2", "IcoSphere"))
 
   a.update_connection_dict()
+
+  print(a.connection_group_list)
 
 
 
