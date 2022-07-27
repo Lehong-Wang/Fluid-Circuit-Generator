@@ -1,0 +1,35 @@
+{
+  "Name": "obj1",
+  "Actural Dimension": [
+    20,
+    20,
+    20
+  ],
+  "Tube Position": {
+    "Power_Pos": [
+      0,
+      0,
+      -10
+    ],
+    "Const_High_Pos": [
+      8,
+      8,
+      -10
+    ],
+    "Input_1_Pos": [
+      10,
+      -10,
+      -10
+    ],
+    "Input_2_Pos": [
+      -5,
+      -5,
+      -10
+    ],
+    "Output_Pos": [
+      -3,
+      9,
+      -10
+    ]
+  }
+}

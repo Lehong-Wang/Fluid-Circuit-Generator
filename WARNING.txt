@@ -1,0 +1,10 @@
+
+Potential Error:
+  Can't update in the middle of making pipes
+  can only update everything from bottom up at the end
+
+  Need to hard reset everything if make changes to pipes and redo everything
+
+Potential Solution:
+  1. solve in UI
+  2. keep track of the top level connections in gate_assembly
