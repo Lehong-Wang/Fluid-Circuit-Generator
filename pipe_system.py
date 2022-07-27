@@ -293,7 +293,6 @@ class PipeSystem:
         pipe = value[1]
         pipe_connections = value[0]
         if not connection_coord in pipe_connections:
-
           modifier_name = f"P_C{pipe.name}"
           pipe.modifiers.new(modifier_name, "BOOLEAN").object = curve_object
           pipe.modifiers[modifier_name].operation = 'DIFFERENCE'
@@ -319,7 +318,10 @@ class PipeSystem:
   def make_everything(self):
     """Make all the modules after all the calculations are finished"""
     for key,value in self.connection_dict.items():
-      path_name = f"Path_{key[0]}-{key[1]}"
+      # path_name = f"Path_{key[0]}-{key[1]}"
+      start_coord_rounded = tuple(map(lambda x: round(x,2), key[0]))
+      end_coord_rounded = tuple(map(lambda x: round(x,2), key[1]))
+      path_name = f"Path_{start_coord_rounded}-{end_coord_rounded}"
       self.pipe_object_dict[(key[0], key[1])] = [(value[1], value[-2]), self.make_pipe(path_name, value)]
 
     for key,value in self.junction_dict.items():
@@ -478,6 +480,21 @@ class PipeSystem:
     return []
 
 
+  def finish_up_everything(self):
+    """
+    Top level function
+    Only call after finishing all the connectings
+    Freeze all the connection data and organize them into usable form (graph)
+    Construct 3d module from the connection information
+    This is NOT Reversable
+    Call once at the end
+    """
+    self.grid.update_connection_dict()
+    self.fetch_grid_data()
+    self.construct_graph()
+    self.make_everything()
+
+
 
 
 ###############################  Print Helpers  #################################
@@ -509,7 +526,6 @@ class PipeSystem:
       print(f"\tStart: {key}")
       for connection in value:
         print(f"Dest:{connection[0]}, Path:{connection[1]}")
-        # print(f"\tDest:{connection[0]}")
 
 
 
@@ -548,16 +564,19 @@ if __name__ == '__main__':
   pipe_system.connect_two_port((20.5,10.8,13), (6,11.5,4))
   pipe_system.connect_two_port((0.5,10,13), (6,1,4))
   pipe_system.connect_two_port((5.5,7,9.9), (6,11.5,4))
-  pipe_system.connect_two_port((5.5,7,9.9), (15.5,10,12.3))
+  # pipe_system.connect_two_port((5.5,7,9.9), (15.5,10,12.3))
+  # pipe_system.update_everything()
+
   pipe_system.connect_two_port((5.5,8,8.7), (0,0,10))
   pipe_system.connect_two_port((6.5,7,9), (20,0.1,9))
   pipe_system.connect_two_port((6.5,8,9), (1.5,0.8,9))
   pipe_system.connect_two_port((10,3.4,9.5), (0.5,10,11.2))
   pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
+  # pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
 
 
-
-  pipe_system.grid.update_connection_dict()
+  pipe_system.finish_up_everything()
+  # pipe_system.grid.update_connection_dict()
 
   pipe_system.grid.print_connection_dict()
   pipe_system.grid.print_saved_junction()
@@ -568,8 +587,8 @@ if __name__ == '__main__':
   # pipe_system.make_pipe("p", [(0,0,0), (0,0,2)])
   # pipe_system.make_junction("j", (0,0,0), [(0,0,1)])
 
-  pipe_system.fetch_grid_data()
-  pipe_system.construct_graph()
+  # pipe_system.fetch_grid_data()
+  # pipe_system.construct_graph()
 
 
 
@@ -589,7 +608,7 @@ if __name__ == '__main__':
 
 
 
-  pipe_system.make_everything()
+  # pipe_system.make_everything()
 
   pipe_system.pipe_dimention = (.5,.01)
   pipe_system.make_pipe("p1", path1)

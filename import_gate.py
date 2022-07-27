@@ -44,8 +44,9 @@ class LogicGate:
     # [position, rotation, scale]
     self.obj_placement_data = [(0,0,0), (0,0,0), (1,1,1)]
 
-    # bpy.ops.mesh.primitive_cube_add()
-    # self.gate_obj = bpy.context.active_object
+    if not file_exists(self.stl_path):
+      print(f"Error: Stl file Not Exist: {self.stl_path}")
+      return
 
     # if no json file with same name, create one
     if not file_exists(self.json_path):
@@ -67,7 +68,7 @@ class LogicGate:
     self.json_data["Port Info"] = self.port_dict
     self.json_data["Connections"] = self.connection_dict
 
-    print(f"Current Properties: {json.dumps(self.json_data, indent=2)}")
+    # print(f"Current Properties: {json.dumps(self.json_data, indent=2)}")
 
     if not file_name:
       file_name = self.json_path
@@ -97,7 +98,7 @@ class LogicGate:
       self.port_dict = self.json_data["Port Info"]
       self.connection_dict = self.json_data["Connections"]
 
-      print(f"Loaded Properties: {json.dumps(self.json_data, indent=2)}")
+      # print(f"Loaded Properties: {json.dumps(self.json_data, indent=2)}")
       print(f"Loaded from file: {file_name}")
       self.reconstruct_obj()
 
@@ -184,6 +185,15 @@ class LogicGate:
     self.obj_placement_data[2] = (x_scale, y_scale, z_scale)
     print(f"Gate {self.name} Scale set to {self.obj_placement_data[2]}")
     self.reconstruct_obj()
+
+
+  def get_port_coord(self, port_name):
+    """Helper function"""
+    if port_name in self.port_abs_pos:
+      return self.port_abs_pos[port_name]
+    else:
+      print(f"ERROR: Port name: {port_name} doesn't exist in logic gate, which have port: {self.port_abs_pos.keys()}")
+
 
 
 
