@@ -111,15 +111,16 @@ class GateAssembly:
     # get connection form logic_gate.connection_dict
     for gate in self.logic_gate_dict.values():
       for key,value in gate.connection_dict.items():
+        key_port_coord = gate.get_port_coord(key)
         connection_list = []
         for connection in value:
           port_coord = gate.get_port_coord(connection[0])
           propagation_delay = connection[1]
           connection_list.append((port_coord, propagation_delay))
-        if key in self.connection_dict:
-          self.connection_dict[key].extend(connection_list)
+        if key_port_coord in self.connection_dict:
+          self.connection_dict[key_port_coord].extend(connection_list)
         else:
-          self.connection_dict[key] = connection_list
+          self.connection_dict[key_port_coord] = connection_list
     print("Gate Assembly connection_dict updated from Logic Gate connection_dict")
 
     print("Gate Assembly connection_dict fully updated")
