@@ -194,7 +194,22 @@ class LogicGate:
     else:
       print(f"ERROR: Port name: {port_name} doesn't exist in logic gate, which have port: {self.port_abs_pos.keys()}")
 
+  def check_port_valid(self):
+    """Check if all ports are in valid position"""
+    for name, port_abs_pos in self.port_abs_pos.items():
+      is_valid = port_abs_pos[0]>=0 and port_abs_pos[1]>=0 and port_abs_pos[2]>=0
+      if not is_valid:
+        print(f"ERROR: Logic Gate {self.name} have port {name}, pos: {port_abs_pos} not in valid bounds.")
+        return False
+    return True
 
+
+  def get_max_pos(self):
+    """Get the max x,y,z position"""
+    max_pos = (0,0,0)
+    for port_abs_pos in self.port_abs_pos.values():
+      max_pos = tuple(map(max, max_pos, port_abs_pos))
+    return max_pos
 
 
 if __name__ == '__main__':

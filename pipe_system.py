@@ -5,6 +5,7 @@ Pipe System
 Interface between imaginary grid and real world coordinates
 """
 
+
 import sys
 from math import sqrt
 import importlib.util
@@ -25,36 +26,43 @@ class PipeSystem:
   Only one can exist, have one Grid object within
   """
 
-  _instance = None
+  grid_dimention = (20,20,20)
+  pipe_dimention = (.2, .15)
+  unit_dimention = 1
+  tip_length = 1
 
-  # singleton
-  def __new__(self):
 
-    if not self._instance:
-      self._instance = super(PipeSystem, self).__new__(self)
+  def __init__(self):
 
-      self.grid_dimention = (20,20,15)
-      # ()
-      self.pipe_dimention = (.2, .15)
-      # self.junction_dimention = (.4, .2)
-      self.unit_dimention = 1
+    self.grid = p.Grid(self.grid_dimention)
 
-      self.tip_length = 1
+    # {(start_coord, end_coord) : [path_coord_list]}
+    self.connection_dict = {}
+    # {junction_coord : [connection_coords]}
+    self.junction_dict = {}
+    # {port_coord : [port, tip, grid]}
+    self.port_dict = {}
+    # {(tip_coord, tip_coord) : [(tip_connection_coord, tip_connection_coord), pipe_object]}
+    self.pipe_object_dict = {}
+    # {coord : [(dest_coord, [path])]}
+    self.connection_graph = {}
 
-      self.grid = p.Grid(self.grid_dimention)
 
-      # {(start_coord, end_coord) : [path_coord_list]}
-      self.connection_dict = {}
-      # {junction_coord : [connection_coords]}
-      self.junction_dict = {}
-      # {port_coord : [port, tip, grid]}
-      self.port_dict = {}
-      # {(tip_coord, tip_coord) : [(tip_connection_coord, tip_connection_coord), pipe_object]}
-      self.pipe_object_dict = {}
-      # {coord : [(dest_coord, [path])]}
-      self.connection_graph = {}
+  def reset_grid(self, grid_dimention=None, pipe_dimention=None, unit_dimention=None, tip_length=None):
+    """Top level function to Addjust dimentions of the grid and pipe system"""
+    if grid_dimention is not None:
+      self.grid_dimention = grid_dimention
+    if pipe_dimention is not None:
+      self.pipe_dimention = pipe_dimention
+    if unit_dimention is not None:
+      self.unit_dimention = unit_dimention
+    if tip_length is not None:
+      self.tip_length = tip_length
+    self.__init__()
+    print(f"Pipe System Reset with grid_dimention={self.grid_dimention}, pipe_dimention={self.pipe_dimention}, unit_dimention={self.unit_dimention}, tip_length={self.tip_length}")
 
-    return self._instance
+
+
 
 
   # snap to grid, then call grid.connect_two_node()
@@ -532,90 +540,117 @@ class PipeSystem:
 
 
 
-
 if __name__ == '__main__':
-
   bpy.ops.object.select_all(action='SELECT')
   bpy.ops.object.delete(use_global=False)
 
-  pipe_system = PipeSystem()
-  pipe_system.unit_dimention = 1
+  pi = PipeSystem()
 
+  print(pi.grid)
+  print(pi.grid.dimention)
+  pi.connect_two_port((18,19,3), (20,20,4))
+  pi.grid.update_connection_dict()
+  pi.fetch_grid_data()
+  pi.print_connection_dict()
 
-  # pipe_system.connect_two_port((15,10,2), (0,10,3))
-  # pipe_system.connect_two_port((2,13,3),(15,10,2))
-  # pipe_system.connect_two_port((4,3,4), (0,10,3))
-  # pipe_system.connect_two_port((0,9,3),(15,9,3))
-  # pipe_system.connect_two_port((1,10,5), (20,10,3))
-  # pipe_system.connect_two_port((5,9,3),(12,9,5))
-  # pipe_system.connect_two_port((6,9,4),(11,9,5))
-  # pipe_system.connect_two_port((7,9,5),(10,9,5))
-  # pipe_system.connect_two_port((0,0,5), (10,10,5))
-  # pipe_system.connect_two_port((8,11,5),(12,0,5))
-  # pipe_system.connect_two_port((16,11,5),(12,0,5))
-  # pipe_system.connect_two_port((0,0,5), (12,0,5))
-  # pipe_system.connect_two_port((4,3,4), (0,0,5))
-  # pipe_system.connect_two_port((4,3,4), (12,0,5))
-  # pipe_system.connect_two_port((4,3,4), (3,0,5))
-  # pipe_system.connect_two_port((12,0,5), (6,1,4))
-  # pipe_system.connect_two_port((15,10,2), (6,1,4))
-  # pipe_system.connect_two_port((20,10,3), (6,1,4))
-  # pipe_system.connect_two_port((0,10,3), (6,1,4))
-
-
-  pipe_system.connect_two_port((15.5,10,12.3), (6,11.5,4))
-  pipe_system.connect_two_port((20.5,10.8,13), (6,11.5,4))
-  pipe_system.connect_two_port((0.5,10,13), (6,1,4))
-  pipe_system.connect_two_port((5.5,7,9.9), (6,11.5,4))
-  # pipe_system.connect_two_port((5.5,7,9.9), (15.5,10,12.3))
-  # pipe_system.update_everything()
-
-  pipe_system.connect_two_port((5.5,8,8.7), (0,0,10))
-  pipe_system.connect_two_port((6.5,7,9), (20,0.1,9))
-  pipe_system.connect_two_port((6.5,8,9), (1.5,0.8,9))
-  pipe_system.connect_two_port((10,3.4,9.5), (0.5,10,11.2))
-  pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
-  # pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
-
-
-  pipe_system.finish_up_everything()
-  # pipe_system.grid.update_connection_dict()
-
-  pipe_system.grid.print_connection_dict()
-  pipe_system.grid.print_saved_junction()
-
-
-  # pipe_system.grid.connect_two_node((1,0,0), (2,0,0))
-  # pipe_system.grid.print_saved_path()
-  # pipe_system.make_pipe("p", [(0,0,0), (0,0,2)])
-  # pipe_system.make_junction("j", (0,0,0), [(0,0,1)])
-
-  # pipe_system.fetch_grid_data()
-  # pipe_system.construct_graph()
+  pi.reset_grid(grid_dimention = (30,30,20), unit_dimention = 3)
+  print(pi.grid)
+  print(pi.grid.dimention)
+  pi.connect_two_port((21,9,6), (30,30,7))
+  pi.grid.update_connection_dict()
+  pi.fetch_grid_data()
+  pi.print_connection_dict()
+  pi.grid.print_connection_dict()
 
 
 
-  # print("Connection Dictionary:")
-  # print(pipe_system.connection_dict)
-  # print("Port Dictionary:")
-  # print(pipe_system.port_dict)
-  pipe_system.print_connection_dict()
-  pipe_system.print_port_dict()
-  pipe_system.print_junction_dict()
-  pipe_system.print_connection_graph()
-
-
-  path1 = pipe_system.get_path_from_graph((15.5,10,12.3), (6,11.5,4))
-  path2 = pipe_system.get_path_from_graph((0,0,10), (20.5,10.8,13))
 
 
 
-  # pipe_system.make_everything()
+
+# if __name__ == '__main__':
+
+#   bpy.ops.object.select_all(action='SELECT')
+#   bpy.ops.object.delete(use_global=False)
+
+#   pipe_system = PipeSystem()
+#   pipe_system.unit_dimention = 1
 
 
-  pipe_system.pipe_dimention = (.5,.01)
-  pipe_system.make_pipe("p1", path1)
-  pipe_system.make_pipe("p2", path2)
+#   # pipe_system.connect_two_port((15,10,2), (0,10,3))
+#   # pipe_system.connect_two_port((2,13,3),(15,10,2))
+#   # pipe_system.connect_two_port((4,3,4), (0,10,3))
+#   # pipe_system.connect_two_port((0,9,3),(15,9,3))
+#   # pipe_system.connect_two_port((1,10,5), (20,10,3))
+#   # pipe_system.connect_two_port((5,9,3),(12,9,5))
+#   # pipe_system.connect_two_port((6,9,4),(11,9,5))
+#   # pipe_system.connect_two_port((7,9,5),(10,9,5))
+#   # pipe_system.connect_two_port((0,0,5), (10,10,5))
+#   # pipe_system.connect_two_port((8,11,5),(12,0,5))
+#   # pipe_system.connect_two_port((16,11,5),(12,0,5))
+#   # pipe_system.connect_two_port((0,0,5), (12,0,5))
+#   # pipe_system.connect_two_port((4,3,4), (0,0,5))
+#   # pipe_system.connect_two_port((4,3,4), (12,0,5))
+#   # pipe_system.connect_two_port((4,3,4), (3,0,5))
+#   # pipe_system.connect_two_port((12,0,5), (6,1,4))
+#   # pipe_system.connect_two_port((15,10,2), (6,1,4))
+#   # pipe_system.connect_two_port((20,10,3), (6,1,4))
+#   # pipe_system.connect_two_port((0,10,3), (6,1,4))
+
+
+#   pipe_system.connect_two_port((15.5,10,12.3), (6,11.5,4))
+#   pipe_system.connect_two_port((20.5,10.8,13), (6,11.5,4))
+#   pipe_system.connect_two_port((0.5,10,13), (6,1,4))
+#   pipe_system.connect_two_port((5.5,7,9.9), (6,11.5,4))
+#   # pipe_system.connect_two_port((5.5,7,9.9), (15.5,10,12.3))
+#   # pipe_system.update_everything()
+
+#   pipe_system.connect_two_port((5.5,8,8.7), (0,0,10))
+#   pipe_system.connect_two_port((6.5,7,9), (20,0.1,9))
+#   pipe_system.connect_two_port((6.5,8,9), (1.5,0.8,9))
+#   pipe_system.connect_two_port((10,3.4,9.5), (0.5,10,11.2))
+#   pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
+#   # pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
+
+
+#   pipe_system.finish_up_everything()
+#   # pipe_system.grid.update_connection_dict()
+
+#   pipe_system.grid.print_connection_dict()
+#   pipe_system.grid.print_saved_junction()
+
+
+#   # pipe_system.grid.connect_two_node((1,0,0), (2,0,0))
+#   # pipe_system.grid.print_saved_path()
+#   # pipe_system.make_pipe("p", [(0,0,0), (0,0,2)])
+#   # pipe_system.make_junction("j", (0,0,0), [(0,0,1)])
+
+#   # pipe_system.fetch_grid_data()
+#   # pipe_system.construct_graph()
+
+
+
+#   # print("Connection Dictionary:")
+#   # print(pipe_system.connection_dict)
+#   # print("Port Dictionary:")
+#   # print(pipe_system.port_dict)
+#   pipe_system.print_connection_dict()
+#   pipe_system.print_port_dict()
+#   pipe_system.print_junction_dict()
+#   pipe_system.print_connection_graph()
+
+
+#   path1 = pipe_system.get_path_from_graph((15.5,10,12.3), (6,11.5,4))
+#   path2 = pipe_system.get_path_from_graph((0,0,10), (20.5,10.8,13))
+
+
+
+#   # pipe_system.make_everything()
+
+
+#   pipe_system.pipe_dimention = (.5,.01)
+#   pipe_system.make_pipe("p1", path1)
+#   pipe_system.make_pipe("p2", path2)
 
 
 

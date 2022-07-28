@@ -8,3 +8,9 @@ Potential Error:
 Potential Solution:
   1. solve in UI
   2. keep track of the top level connections in gate_assembly
+
+
+
+Potential Error:
+  doesn't support float unit_dimention
+  only integer

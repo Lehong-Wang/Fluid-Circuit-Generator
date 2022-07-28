@@ -1,4 +1,8 @@
-
+"""
+Manage the whole Assembly including Logic Gates and Pipe System
+Handles high level analysis and claculations like propagation delay
+Keeps track of gates, connections, and check for duplicates
+"""
 
 
 import sys
@@ -16,38 +20,59 @@ sys.modules["import_gate.py"] = import_gate
 import_gate_spec.loader.exec_module(import_gate)
 
 
-# p = pipe_system.PipeSystem()
-# g = import_gate.LogicGate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
-
 
 class GateAssembly:
+  """
+  Gate Assembly object
+  Only create one, have one Pipe System object and a dictionary of Logic Gate object
+  """
 
-  _instance = None
+  def __init__(self):
 
-  def __new__(cls):
-    if not cls._instance:
-      cls._instance = super(GateAssembly, cls).__new__(cls)
-
-      cls.pipe_system = pipe_system.PipeSystem()
-      cls.logic_gate_dict = {}
-      # {start : [(end, propagation_delay) ] }
-      cls.connection_dict = {}
-      # list of all connection grounps (ports that are interconnected)
-      # store as (gate_name, port_name)
-      cls.connection_group_list = []
+    self.pipe_system = pipe_system.PipeSystem()
+    # {gate_name : gate_object}
+    self.logic_gate_dict = {}
+    # {start : [(end, propagation_delay) ] }
+    self.connection_dict = {}
+    # list of all connection grounps (ports that are interconnected)
+    # store as (gate_name, port_name)
+    self.connection_group_list = []
 
 
-    return cls._instance
 
 
   def add_gate(self, name, stl_path):
+    """Add logic gate"""
     new_gate = import_gate.LogicGate(name, stl_path)
     self.logic_gate_dict[name] = new_gate
     return new_gate
 
 
+  def prepare_for_connection(self, pipe_dimention=None, unit_dimention=1, tip_length=None):
+    """
+    Set grid to fit gate ports
+    Check if ports are in valid position
+    Call this function before making connections
+    Don't make connection if this return False
+    """
+    max_real_dimention = (0,0,0)
+    is_port_valid = True
+    for gate in self.logic_gate_dict.values():
+      max_real_dimention = tuple(map(max, max_real_dimention, gate.get_max_pos()))
+      is_port_valid &= gate.check_port_valid()
+
+    max_grid_dimention = tuple(map(lambda x: int(x//unit_dimention)+1, max_real_dimention))
+
+    self.pipe_system.reset_grid(max_grid_dimention, pipe_dimention, unit_dimention, tip_length)
+    return is_port_valid
+
+
 
   def add_connection(self, gate_port_start, gate_port_end):
+    """
+    Function to connect two ports with (gate_name, port_name)
+    Also check if connection already exists
+    """
     start_in_group = None
     end_in_group = None
     for group in self.connection_group_list:
@@ -78,6 +103,7 @@ class GateAssembly:
 
 
   def create_port_connection(self, gate_port_start, gate_port_end):
+    """Helper Function"""
     gate_start, port_start = gate_port_start
     gate_end, port_end = gate_port_end
     start_port = self.get_gate_port_coord(gate_start, port_start)
@@ -96,6 +122,7 @@ class GateAssembly:
 
 
   def update_connection_dict(self):
+    """Load connection info from pipe_system and logic_gate into connection_dict with propagation delay"""
     self.pipe_system.finish_up_everything()
     # get connection from pipe_system.connection_graph
     for key,value in self.pipe_system.connection_graph.items():
@@ -153,23 +180,25 @@ if __name__ == '__main__':
 
   gate1 = a.add_gate("g1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate1.stl")
   gate2 = a.add_gate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
-  gate1.move_gate(3,3,6)
+  gate1.move_gate(33,63,26)
   gate1.rotate_gate(15,26,37)
-  gate1.scale_gate(.2,.2,.1)
-  gate2.move_gate(6,7,7)
-  gate2.scale_gate(.3,.3,.1)
+  gate1.scale_gate(1,3,.8)
+  gate2.move_gate(13,17,20)
+  gate2.scale_gate(.3,.7,.5)
 
-  a.add_connection((gate1.name, "Sphere"), ("g2", "Cube"))
-  a.add_connection((gate1.name, "Cube"), ("g2", "Cube"))
-  a.add_connection(("g1", "Ring"), ("g2", "Ring"))
-  a.add_connection(("g2", "Ring"), ("g2", "IcoSphere"))
-  print(a.connection_group_list)
+  if a.prepare_for_connection(pipe_dimention = (.5,.3), unit_dimention = 3, tip_length = 4):
 
-  a.add_connection(("g1", "Ring"), ("g2", "IcoSphere"))
+    a.add_connection((gate1.name, "Sphere"), ("g2", "Cube"))
+    a.add_connection((gate1.name, "Cube"), ("g2", "Cube"))
+    a.add_connection(("g1", "Ring"), ("g2", "Ring"))
+    a.add_connection(("g2", "Ring"), ("g2", "IcoSphere"))
+    print(a.connection_group_list)
 
-  a.update_connection_dict()
+    a.add_connection(("g1", "Ring"), ("g2", "IcoSphere"))
 
-  print(a.connection_group_list)
+    a.update_connection_dict()
+
+    print(a.connection_group_list)
 
 
 
