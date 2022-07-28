@@ -1,4 +1,8 @@
-
+"""
+Manage the whole Assembly including Logic Gates and Pipe System
+Handles high level analysis and claculations like propagation delay
+Keeps track of gates, connections, and check for duplicates
+"""
 
 
 import sys
@@ -16,11 +20,12 @@ sys.modules["import_gate.py"] = import_gate
 import_gate_spec.loader.exec_module(import_gate)
 
 
-# p = pipe_system.PipeSystem()
-# g = import_gate.LogicGate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
-
 
 class GateAssembly:
+  """
+  Gate Assembly object
+  Only create one, have one Pipe System object and a dictionary of Logic Gate object
+  """
 
   def __init__(self):
 

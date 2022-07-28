@@ -5,7 +5,6 @@ Pipe System
 Interface between imaginary grid and real world coordinates
 """
 
-import gc
 
 import sys
 from math import sqrt
@@ -26,29 +25,14 @@ class PipeSystem:
   PipeSystem object
   Only one can exist, have one Grid object within
   """
-  # cls_grid_dimention = (20,20,15)
-  # cls_pipe_dimention = (.2, .15)
-  # cls_unit_dimention = 1
-  # cls_tip_length = 1
 
   grid_dimention = (20,20,20)
-  # ()
   pipe_dimention = (.2, .15)
-  # self.junction_dimention = (.4, .2)
   unit_dimention = 1
-
   tip_length = 1
 
 
   def __init__(self):
-
-    # self.grid_dimention = (20,20,15)
-    # # ()
-    # self.pipe_dimention = (.2, .15)
-    # # self.junction_dimention = (.4, .2)
-    # self.unit_dimention = 1
-
-    # self.tip_length = 1
 
     self.grid = p.Grid(self.grid_dimention)
 
@@ -579,26 +563,6 @@ if __name__ == '__main__':
   pi.grid.print_connection_dict()
 
 
-
-
-
-
-
-  # pi2 = PipeSystem()
-  # print(pi.grid)
-  # print(pi)
-  # print(pi2)
-  # pi_ref = gc.get_referrers(pi)
-  # print(len(pi_ref))
-  # del pi
-  # pi_ref = gc.get_referrers(pi)
-  # print(len(pi_ref))
-  # a = 1
-  # g = p.Grid((1,2,3))
-  # print(g.dimention)
-
-  # pi3 = PipeSystem()
-  # print(pi3)
 
 
 
