@@ -11,8 +11,10 @@ import math
 from queue import PriorityQueue
 import bpy
 
+################################################################################################
+########################################  Node Class  ##########################################
+################################################################################################
 
-#####################################  Node Class  ###################################
 
 class Node:
   """
@@ -204,8 +206,9 @@ class Node:
     self.update_neighbors()
 
 
-
+############################################################################################
 #####################################  Grid Class  #########################################
+############################################################################################
 
 class Grid:
   """
@@ -213,37 +216,32 @@ class Grid:
   The Grid is graph with nodes(Node object) and coonections(Node neighbors)
   Impliment A star path finding on this graph
   """
-  # singleton design pattern
-  # only one Grid object can exist at a time
-  _instance = None
 
-  def __new__(self, dimention):
+
+  def __init__(self, dimention):
     # blockPrint()
-    if not self._instance:
-      self._instance = super(Grid, self).__new__(self)
 
-      self.dimention = dimention
-      self.node_grid = []
-      self.node_grid = self.make_grid(self)
+    self.dimention = dimention
+    self.node_grid = []
+    self.node_grid = self.make_grid()
 
-      # store all the ground paths
-      # only ground path can merge together
-      # {(start_node, end_node) : [path_node_list]}
-      self.saved_path = {}
-      # store all the junction info
-      # {junction_ndoe : [connection_nodes]}
-      self.saved_junction = {}
-      # store all the tip_ground path
-      # {tip_node : [ground_node, is_start, [path_node_list]]}
-      self.tip_ground_table = {}
-      # store all the connections
-      # generated after all path are processed
-      # {(start_node, end_node) : [path_node_list]}
-      self.connection_dict = {}
+    # store all the ground paths
+    # only ground path can merge together
+    # {(start_node, end_node) : [path_node_list]}
+    self.saved_path = {}
+    # store all the junction info
+    # {junction_ndoe : [connection_nodes]}
+    self.saved_junction = {}
+    # store all the tip_ground path
+    # {tip_node : [ground_node, is_start, [path_node_list]]}
+    self.tip_ground_table = {}
+    # store all the connections
+    # generated after all path are processed
+    # {(start_node, end_node) : [path_node_list]}
+    self.connection_dict = {}
 
-      self.path_graph = {}
+    self.path_graph = {}
 
-    return self._instance
 
 
   # make a grid of nodes
@@ -261,7 +259,7 @@ class Grid:
     return X_list
 
 
-  ########################################  path finding  ########################################
+  ###########################################  path finding  ########################################
 
   # A* path finding
   def path_finding(self, start_coord, end_coord):
@@ -479,7 +477,7 @@ class Grid:
     return
 
 
-  #####################################  junction  ###########################
+  #####################################  junction  ############################################
 
   # kind of jump table to determin what to do
   def add_path(self, start_coord, end_coord):
@@ -771,7 +769,7 @@ class Grid:
 
 
 
-  ##################################   connect two points  ####################################
+  ##################################   connect two points  ##########################################
 
   # this will generate a path that goes to ground first, find path, and go up
   # save_path stores ground_ground path,

@@ -22,22 +22,17 @@ import_gate_spec.loader.exec_module(import_gate)
 
 class GateAssembly:
 
-  _instance = None
+  def __init__(self):
 
-  def __new__(cls):
-    if not cls._instance:
-      cls._instance = super(GateAssembly, cls).__new__(cls)
-
-      cls.pipe_system = pipe_system.PipeSystem()
-      cls.logic_gate_dict = {}
-      # {start : [(end, propagation_delay) ] }
-      cls.connection_dict = {}
-      # list of all connection grounps (ports that are interconnected)
-      # store as (gate_name, port_name)
-      cls.connection_group_list = []
+    self.pipe_system = pipe_system.PipeSystem()
+    self.logic_gate_dict = {}
+    # {start : [(end, propagation_delay) ] }
+    self.connection_dict = {}
+    # list of all connection grounps (ports that are interconnected)
+    # store as (gate_name, port_name)
+    self.connection_group_list = []
 
 
-    return cls._instance
 
 
   def add_gate(self, name, stl_path):
@@ -153,11 +148,13 @@ if __name__ == '__main__':
 
   gate1 = a.add_gate("g1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate1.stl")
   gate2 = a.add_gate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
-  gate1.move_gate(3,3,6)
+  gate1.move_gate(33,33,26)
   gate1.rotate_gate(15,26,37)
-  gate1.scale_gate(.2,.2,.1)
-  gate2.move_gate(6,7,7)
-  gate2.scale_gate(.3,.3,.1)
+  gate1.scale_gate(1,1,.8)
+  gate2.move_gate(16,17,20)
+  gate2.scale_gate(.3,.7,.5)
+
+  a.pipe_system.reset_grid(grid_dimention = (25,30,10), pipe_dimention = (.5,.3), unit_dimention = 2, tip_length = 4)
 
   a.add_connection((gate1.name, "Sphere"), ("g2", "Cube"))
   a.add_connection((gate1.name, "Cube"), ("g2", "Cube"))
