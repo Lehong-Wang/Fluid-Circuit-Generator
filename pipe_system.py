@@ -31,7 +31,7 @@ class PipeSystem:
   # cls_unit_dimention = 1
   # cls_tip_length = 1
 
-  grid_dimention = (20,20,15)
+  grid_dimention = (20,20,20)
   # ()
   pipe_dimention = (.2, .15)
   # self.junction_dimention = (.4, .2)
