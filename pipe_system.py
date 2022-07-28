@@ -46,6 +46,10 @@ class PipeSystem:
     self.pipe_object_dict = {}
     # {coord : [(dest_coord, [path])]}
     self.connection_graph = {}
+    # stores user related error messages
+    self.error_message_list = []
+    # stores user related warning messages
+    self.warning_message_list = []
 
 
   def reset_grid(self, grid_dimention=None, pipe_dimention=None, unit_dimention=None, tip_length=None):
@@ -123,7 +127,7 @@ class PipeSystem:
           if self.grid_coord_in_use((grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])):
             grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2]-1)
             if grid_coord[2] < 0:
-              print(f"Error: can't find snap point for Tip_Coord{coord}")
+              self.register_error_message(f"ERROR: can't find snap point for Tip_Coord{coord}")
               return
             continue
           grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])
@@ -146,7 +150,7 @@ class PipeSystem:
       return True
     for key,value in self.port_dict.items():
       if real_grid_coord in value:
-        print("IN")
+        # print("IN")
         return True
     return False
 
@@ -421,6 +425,8 @@ class PipeSystem:
 
 
   # get the full path from two coords
+  # should not use this, but use one in Gate Assembly
+  # TODO
   def get_path_from_graph(self, start_coord, end_coord):
     """Triverse the graph to find path between two real world coordinates"""
     print(f"\nGetting path from {start_coord} to {end_coord}")
@@ -487,7 +493,7 @@ class PipeSystem:
 
       visited_list.append(this_coord)
 
-    print("Path Not Found")
+    print(f"Error: Path Not Found for {start_coord}-{end_coord}")
     return []
 
 
@@ -538,6 +544,30 @@ class PipeSystem:
       for connection in value:
         print(f"Dest:{connection[0]}, Path:{connection[1]}")
 
+  def register_error_message(self, error_message):
+    """Helper Function"""
+    self.error_message_list.append(error_message)
+    print(error_message)
+
+  def register_warning_message(self, warning_message):
+    """Helper Function"""
+    self.warning_message_list.append(warning_message)
+    print(warning_message)
+
+  def get_error_message(self):
+    """Helper Function"""
+    grid_error_message = self.grid.get_error_message()
+    self.error_message_list.extend(grid_error_message)
+    return self.error_message_list
+
+  def get_warning_message(self):
+    """Helper Function"""
+    grid_warning_message = self.grid.get_warning_message()
+    self.warning_message_list.extend(grid_warning_message)
+    return self.warning_message_list
+
+
+
 
 
 if __name__ == '__main__':
@@ -561,6 +591,9 @@ if __name__ == '__main__':
   pi.fetch_grid_data()
   pi.print_connection_dict()
   pi.grid.print_connection_dict()
+
+  print(pi.get_error_message())
+  print(pi.get_warning_message())
 
 
 

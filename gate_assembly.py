@@ -36,7 +36,12 @@ class GateAssembly:
     self.connection_dict = {}
     # list of all connection grounps (ports that are interconnected)
     # store as (gate_name, port_name)
-    self.connection_group_list = []
+    self.connection_group_list = []  
+
+    # stores user related error messages
+    self.error_message_list = []
+    # stores user related warning messages
+    self.warning_message_list = []
 
 
 
@@ -92,7 +97,7 @@ class GateAssembly:
       start_in_group.append(gate_port_end)
     # in same group
     elif start_in_group and end_in_group and start_in_group is end_in_group:
-      print(f"WARNING: Connection already exists between {gate_port_start} and {gate_port_end}")
+      self.register_warning_message(f"WARNING: Connection already exists between {gate_port_start} and {gate_port_end}")
       return
     # in different group
     elif start_in_group and end_in_group and start_in_group is not end_in_group:
@@ -117,7 +122,7 @@ class GateAssembly:
     if gate_name in self.logic_gate_dict:
       return self.logic_gate_dict[gate_name].get_port_coord(port_name)
     else:
-      print(f"ERROR: Gate name: {gate_name} doesn't exist in logic_gate_dict: {self.logic_gate_dict.keys()}")
+      print(f"Error: Gate name: {gate_name} doesn't exist in logic_gate_dict: {self.logic_gate_dict.keys()}")
 
 
 
@@ -155,6 +160,11 @@ class GateAssembly:
     self.print_connection_dict()
 
 
+  def round_coord(self, coord):
+    """Helper function"""
+    return tuple(map(lambda x: round(x,2), coord))
+
+
   def print_connection_dict(self):
     """Helper function"""
     print("\nConnection Dict:")
@@ -163,9 +173,35 @@ class GateAssembly:
       for connection in value:
         print(f"Dest: {self.round_coord(connection[0])}, Propegation delay: {round(connection[1],4)}")
 
-  def round_coord(self, coord):
-    """Helper function"""
-    return tuple(map(lambda x: round(x,2), coord))
+  def register_error_message(self, error_message):
+    """Helper Function"""
+    self.error_message_list.append(error_message)
+    print(error_message)
+
+  def register_warning_message(self, warning_message):
+    """Helper Function"""
+    self.warning_message_list.append(warning_message)
+    print(warning_message)
+
+  def get_error_message(self):
+    """Helper Function"""
+    pipe_error_message = self.pipe_system.get_error_message()
+    gate_error_message = []
+    for gate in self.logic_gate_dict.values():
+      gate_error_message.extend(gate.get_error_message())
+    self.error_message_list.extend(pipe_error_message)
+    self.error_message_list.extend(gate_error_message)
+    return self.error_message_list
+
+  def get_warning_message(self):
+    """Helper Function"""
+    pipe_warning_message = self.pipe_system.get_warning_message()
+    gate_warning_message = []
+    for gate in self.logic_gate_dict.values():
+      gate_warning_message.extend(gate.get_warning_message())
+    self.warning_message_list.extend(pipe_warning_message)
+    self.warning_message_list.extend(gate_warning_message)
+    return self.warning_message_list
 
 
 
@@ -180,7 +216,7 @@ if __name__ == '__main__':
 
   gate1 = a.add_gate("g1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate1.stl")
   gate2 = a.add_gate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
-  gate1.move_gate(33,63,26)
+  gate1.move_gate(33,23,26)
   gate1.rotate_gate(15,26,37)
   gate1.scale_gate(1,3,.8)
   gate2.move_gate(13,17,20)
@@ -199,6 +235,8 @@ if __name__ == '__main__':
     a.update_connection_dict()
 
     print(a.connection_group_list)
+    print(a.get_warning_message())
+    print(a.get_error_message())
 
 
 

@@ -44,8 +44,13 @@ class LogicGate:
     # [position, rotation, scale]
     self.obj_placement_data = [(0,0,0), (0,0,0), (1,1,1)]
 
+    # stores user related error messages
+    self.error_message_list = []
+    # stores user related warning messages
+    self.warning_message_list = []
+
     if not file_exists(self.stl_path):
-      print(f"Error: Stl file Not Exist: {self.stl_path}")
+      self.register_warning_message(f"ERROR: Stl file Not Exist: {self.stl_path}")
       return
 
     # if no json file with same name, create one
@@ -74,7 +79,7 @@ class LogicGate:
       file_name = self.json_path
     else:
       if not file_exists(file_name):
-        print(f"Error: Json Path {file_name} doesn't exist.")
+        self.register_warning_message(f"WARNING: Json Path {file_name} doesn't exist for Writing.")
         return
     with open(file_name, "w") as f:
       json.dump(self.json_data, f, indent=2)
@@ -88,7 +93,7 @@ class LogicGate:
       file_name = self.json_path
     else:
       if not file_exists(file_name):
-        print(f"Error: Json Path {file_name} doesn't exist.")
+        self.register_error_message(f"ERROR: Json Path {file_name} doesn't exist for Loading.")
         return
     with open(file_name, "r") as f:
       self.json_data = json.load(f)
@@ -192,14 +197,14 @@ class LogicGate:
     if port_name in self.port_abs_pos:
       return self.port_abs_pos[port_name]
     else:
-      print(f"ERROR: Port name: {port_name} doesn't exist in logic gate, which have port: {self.port_abs_pos.keys()}")
+      print(f"Error: Port name: {port_name} doesn't exist in logic gate, which have port: {self.port_abs_pos.keys()}")
 
   def check_port_valid(self):
     """Check if all ports are in valid position"""
     for name, port_abs_pos in self.port_abs_pos.items():
       is_valid = port_abs_pos[0]>=0 and port_abs_pos[1]>=0 and port_abs_pos[2]>=0
       if not is_valid:
-        print(f"ERROR: Logic Gate {self.name} have port {name}, pos: {port_abs_pos} not in valid bounds.")
+        print(f"Error: Logic Gate {self.name} have port {name}, pos: {port_abs_pos} not in valid bounds.")
         return False
     return True
 
@@ -210,6 +215,33 @@ class LogicGate:
     for port_abs_pos in self.port_abs_pos.values():
       max_pos = tuple(map(max, max_pos, port_abs_pos))
     return max_pos
+
+
+
+
+
+  def register_error_message(self, error_message):
+    """Helper Function"""
+    self.error_message_list.append(error_message)
+    print(error_message)
+
+  def register_warning_message(self, warning_message):
+    """Helper Function"""
+    self.warning_message_list.append(warning_message)
+    print(warning_message)
+
+  def get_error_message(self):
+    """Helper Function"""
+    return self.error_message_list
+
+  def get_warning_message(self):
+    """Helper Function"""
+    return self.warning_message_list
+
+
+
+
+
 
 
 if __name__ == '__main__':
@@ -240,3 +272,6 @@ if __name__ == '__main__':
   # gate.load_from_json()
   # print(gate.connection_dict)
   # print(gate.gate_obj)
+
+  print(gate.get_error_message())
+  print(gate.get_warning_message())
