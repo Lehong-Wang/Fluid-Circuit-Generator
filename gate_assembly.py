@@ -36,7 +36,7 @@ class GateAssembly:
     self.connection_dict = {}
     # list of all connection grounps (ports that are interconnected)
     # store as (gate_name, port_name)
-    self.connection_group_list = []  
+    self.connection_group_list = []
 
     # stores user related error messages
     self.error_message_list = []
@@ -123,6 +123,7 @@ class GateAssembly:
       return self.logic_gate_dict[gate_name].get_port_coord(port_name)
     else:
       print(f"Error: Gate name: {gate_name} doesn't exist in logic_gate_dict: {self.logic_gate_dict.keys()}")
+      return None
 
 
 
@@ -165,6 +166,81 @@ class GateAssembly:
     return tuple(map(lambda x: round(x,2), coord))
 
 
+
+  def get_propagation_delay(self, start_gate_port, end_gate_port):
+    """Find path between two given ports and return the propagation delay"""
+    if start_gate_port == end_gate_port:
+      self.register_warning_message(f"WARNING: Looking for propergation delay to the same port {start_gate_port}")
+      return 0
+
+    start_coord = self.get_gate_port_coord(start_gate_port[0], start_gate_port[1])
+    end_coord = self.get_gate_port_coord(end_gate_port[0], end_gate_port[1])
+
+    if not start_coord or not end_coord:
+      return 0
+
+    search_queue = []
+    visited_list = []
+    last_visited = {}
+
+    search_queue.append(start_coord)
+
+    while search_queue:
+      this_coord = search_queue.pop(0)
+
+      # found
+      if this_coord is end_coord:
+        found_path = []
+        total_propegation_delay = 0
+        current_coord = this_coord
+        # trace back and get delay
+        while current_coord is not start_coord:
+          found_path.insert(0, current_coord)
+          last_visited_coord = last_visited[current_coord]
+          current_delay = self.get_delay(last_visited_coord, current_coord)
+          if current_delay is None:
+            print("Error: Problem with get_delay")
+            return 0
+          total_propegation_delay += current_delay
+          current_coord = last_visited_coord
+
+        total_propegation_delay = round(total_propegation_delay,4)
+        print(f"Found path: {found_path}")
+        print(f"Total Propegation Delay: {total_propegation_delay}")
+        return total_propegation_delay
+
+      # get neighbor list
+      this_neighbor_list = []
+      for dest in self.connection_dict[this_coord]:
+        this_neighbor_list.append(dest[0])
+      # add neighbors to search queue
+      for neighbor in this_neighbor_list:
+        if not (neighbor in visited_list) and (neighbor not in search_queue):
+          search_queue.append(neighbor)
+          last_visited[neighbor] = this_coord
+
+      visited_list.append(this_coord)
+
+
+  def get_delay(self, coord, dest):
+    """Helper Function"""
+    if coord not in self.connection_dict:
+      print(f"Error: Coord {coord} not in connection_dict")
+      return None
+    dest_list = self.connection_dict[coord]
+    for this_dest, this_delay in dest_list:
+      if dest == this_dest:
+        return this_delay
+    print(f"Error: Destination {dest} not in dest_list of {coord}, dest_list: {dest_list}")
+    return None
+
+
+
+
+
+  ##############################################  Print Helper  ##################################################
+
+
   def print_connection_dict(self):
     """Helper function"""
     print("\nConnection Dict:")
@@ -172,6 +248,12 @@ class GateAssembly:
       print(f"\tStart: {self.round_coord(key)}")
       for connection in value:
         print(f"Dest: {self.round_coord(connection[0])}, Propegation delay: {round(connection[1],4)}")
+
+  def print_connection_group(self):
+    """Helper function"""
+    print("\nConnection Group:")
+    for i,group in enumerate(self.connection_group_list):
+      print(f"\tGroup {i}: {group}")
 
   def register_error_message(self, error_message):
     """Helper Function"""
@@ -216,7 +298,7 @@ if __name__ == '__main__':
 
   gate1 = a.add_gate("g1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate1.stl")
   gate2 = a.add_gate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
-  gate1.move_gate(33,23,26)
+  gate1.move_gate(33,53,26)
   gate1.rotate_gate(15,26,37)
   gate1.scale_gate(1,3,.8)
   gate2.move_gate(13,17,20)
@@ -234,9 +316,13 @@ if __name__ == '__main__':
 
     a.update_connection_dict()
 
-    print(a.connection_group_list)
+    a.get_propagation_delay(("g2", "IcoSphere"), ("g1", "Cube"))
+    a.get_propagation_delay(("g2", "IcoSphere"), ("g2", "Cube"))
+
+    a.print_connection_group()
     print(a.get_warning_message())
     print(a.get_error_message())
+
 
 
 

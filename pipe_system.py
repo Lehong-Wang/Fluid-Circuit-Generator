@@ -426,9 +426,12 @@ class PipeSystem:
 
   # get the full path from two coords
   # should not use this, but use one in Gate Assembly
-  # TODO
   def get_path_from_graph(self, start_coord, end_coord):
-    """Triverse the graph to find path between two real world coordinates"""
+    """
+    Triverse the graph to find path between two real world coordinates
+    DO NOT USE this one, use the one in gate assembly
+    That one also considers internal connection of logic gates
+    """
     print(f"\nGetting path from {start_coord} to {end_coord}")
 
     if start_coord not in self.connection_graph:
