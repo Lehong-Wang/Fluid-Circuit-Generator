@@ -119,14 +119,19 @@ class LogicGate:
 
     bpy.ops.import_mesh.stl(filepath = self.stl_path)
     self.gate_obj = bpy.context.active_object
-    # set object dimensions to default, without changing the scale
-    if self.default_dimention:
-      current_dimention = tuple(self.gate_obj.dimensions)
-      bpy.ops.object.mode_set(mode = 'EDIT')
-      bpy.ops.transform.resize(value = tuple(map(lambda x,y: x/y, self.default_dimention, current_dimention)))
-      bpy.ops.object.mode_set(mode = 'OBJECT')
-    else:
-      self.default_dimention = tuple(self.gate_obj.dimensions)
+    # # set object dimensions to default, without changing the scale
+    # if self.default_dimention:
+    #   current_dimention = tuple(self.gate_obj.dimensions)
+    #   bpy.ops.object.mode_set(mode = 'EDIT')
+    #   # bpy.ops.mesh.select_all(action='SELECT')
+    #   # bpy.context.scene.tool_settings.transform_pivot_point = 'CURSOR'
+
+    #   # bpy.ops.transform.resize(value = tuple(map(lambda x,y: x/y, self.default_dimention, current_dimention)))
+    #   bpy.ops.transform.resize(value=tuple(map(lambda x,y: x/y, self.default_dimention, current_dimention)), orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', mirror=True, use_proportional_edit=False, proportional_edit_falloff='SMOOTH', proportional_size=1, use_proportional_connected=False, use_proportional_projected=False)
+
+    #   bpy.ops.object.mode_set(mode = 'OBJECT')
+    # else:
+    #   self.default_dimention = tuple(self.gate_obj.dimensions)
 
     # apply move, scale, rotation
     self.gate_obj.rotation_mode = "XYZ"

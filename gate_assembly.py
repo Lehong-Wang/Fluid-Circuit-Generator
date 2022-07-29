@@ -53,6 +53,10 @@ class GateAssembly:
     return new_gate
 
 
+  def add_free_port(self, port):
+    pass
+
+
   def prepare_for_connection(self, pipe_dimention=None, unit_dimention=1, tip_length=None):
     """
     Set grid to fit gate ports
@@ -60,6 +64,7 @@ class GateAssembly:
     Call this function before making connections
     Don't make connection if this return False
     """
+
     max_real_dimention = (0,0,0)
     is_port_valid = True
     for gate in self.logic_gate_dict.values():
@@ -233,6 +238,26 @@ class GateAssembly:
         return this_delay
     print(f"Error: Destination {dest} not in dest_list of {coord}, dest_list: {dest_list}")
     return None
+
+
+
+
+  def reset_blender(self):
+    # delete all object (including invisible ones)
+    for obj in bpy.data.collections.data.objects:
+      bpy.data.objects.remove(obj)
+    # set to object mode
+    bpy.ops.mesh.primitive_cube_add()
+    bpy.ops.object.mode_set(mode = "OBJECT")
+    # delete cube
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+    # move cursor to origin
+    bpy.context.scene.cursor.location = (0,0,0)
+    # # scale using cursor as origin
+    # bpy.context.scene.tool_settings.transform_pivot_point = 'CURSOR'
+
+
 
 
 

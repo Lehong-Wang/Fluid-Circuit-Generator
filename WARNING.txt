@@ -16,4 +16,11 @@ Potential Error:
   only integer
 
 
-TODO: 
+Potential Error:
+  don't support resizeing gate to default size
+  make sure info in json is correct
+
+
+TODO:
+  add free in/out put port
+  also consider them when addjusting grid
