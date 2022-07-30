@@ -247,7 +247,12 @@ class PipeSystem:
 
     curve_object.data.bevel_depth = self.pipe_dimention[0] + self.pipe_dimention[1]
     curve_object.data.bevel_resolution = 2
-    curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = self.pipe_dimention[1]
+
+    solidify_modifier_name = "Solidify"
+    curve_object.modifiers.new(solidify_modifier_name, "SOLIDIFY").thickness = self.pipe_dimention[1]
+    curve_object.modifiers[solidify_modifier_name].use_quality_normals = True
+    curve_object.modifiers[solidify_modifier_name].use_even_offset = True
+
     # fully select object
     curve_object.select_set(True)
     bpy.context.view_layer.objects.active = curve_object

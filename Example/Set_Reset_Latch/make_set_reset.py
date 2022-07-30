@@ -22,14 +22,14 @@ and_gate = assembly.add_gate("AND_gate", "/Users/lhwang/Documents/GitHub/RMG Pro
 not_gate = assembly.add_gate("NOT_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Set_Reset_Latch/STL/NOT_gate.stl")
 or_gate = assembly.add_gate("OR_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Set_Reset_Latch/STL/OR_gate.stl")
 
-and_gate.move_gate(20,10,10)
-or_gate.move_gate(10,15,10)
-not_gate.move_gate(10,5,10)
+and_gate.move_gate(10,5,3)
+or_gate.move_gate(4,8,3)
+not_gate.move_gate(4,3,3)
 
 
-assembly.add_free_end_port("Input_set", (1,15,10))
-assembly.add_free_end_port("Input_reset", (1,5,10))
-assembly.add_free_end_port("Output", (20,0,10))
+assembly.add_free_end_port("Input_set", (0,6,1))
+assembly.add_free_end_port("Input_reset", (0,3,1))
+assembly.add_free_end_port("Output", (10,0,1))
 
 
 if assembly.prepare_for_connection(pipe_dimention = (.25,.1), unit_dimention = 1, tip_length = 1):
