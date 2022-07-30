@@ -27,21 +27,17 @@ or_gate.move_gate(10,15,10)
 not_gate.move_gate(10,5,10)
 
 
-free_input_set = (1,15,10)
-free_input_reset = (1,5,10)
-free_output = (20,0,10)
-
-or_gate_input_2_coord = assembly.get_gate_port_coord("OR_gate", "Input_2")
-not_gate_input_2_coord = assembly.get_gate_port_coord("NOT_gate", "Input_2")
-and_gate_output_coord = assembly.get_gate_port_coord("AND_gate", "Output")
+assembly.add_free_end_port("Input_set", (1,15,10))
+assembly.add_free_end_port("Input_reset", (1,5,10))
+assembly.add_free_end_port("Output", (20,0,10))
 
 
 if assembly.prepare_for_connection(pipe_dimention = (.25,.1), unit_dimention = 1, tip_length = 1):
 
 
-  assembly.pipe_system.connect_two_port(free_input_set, or_gate_input_2_coord)
-  assembly.pipe_system.connect_two_port(free_input_reset, not_gate_input_2_coord)
-  assembly.pipe_system.connect_two_port(and_gate_output_coord, free_output)
+  assembly.add_connection(("FREE_END", "Input_set"), ("OR_gate", "Input_2"))
+  assembly.add_connection(("FREE_END", "Input_reset"), ("NOT_gate", "Input_1"))
+  assembly.add_connection(("AND_gate", "Output"), ("FREE_END", "Output"))
 
   assembly.add_connection(("OR_gate", "Output"), ("AND_gate", "Input_1"))
   assembly.add_connection(("NOT_gate", "Output"), ("AND_gate", "Input_2"))

@@ -32,6 +32,9 @@ class GateAssembly:
     self.pipe_system = pipe_system.PipeSystem()
     # {gate_name : gate_object}
     self.logic_gate_dict = {}
+    # {port_name : coord}
+    # gate_name for free end port is "FREE_END"
+    self.free_end_port_dict = {}
     # {start : [(end, propagation_delay) ] }
     self.connection_dict = {}
     # list of all connection grounps (ports that are interconnected)
@@ -53,8 +56,11 @@ class GateAssembly:
     return new_gate
 
 
-  def add_free_port(self, port):
-    pass
+  def add_free_end_port(self, port_name, port_coord):
+    if port_name in self.free_end_port_dict:
+      self.register_warning_message(f"WARNING: Port name {port_name}, coord {self.free_end_port_dict[port_name]} already exists in free_end_port_dict, now replaced with coord {port_coord}")
+    self.free_end_port_dict[port_name] = port_coord
+    return port_coord
 
 
   def prepare_for_connection(self, pipe_dimention=None, unit_dimention=1, tip_length=None):
@@ -66,10 +72,14 @@ class GateAssembly:
     """
 
     max_real_dimention = (0,0,0)
-    is_port_valid = True
+    is_port_valid = True  # within valid dimensions
+    # check gates
     for gate in self.logic_gate_dict.values():
       max_real_dimention = tuple(map(max, max_real_dimention, gate.get_max_pos()))
       is_port_valid &= gate.check_port_valid()
+    # check free_end_port_dict
+    for port_coord in self.free_end_port_dict.values():
+      max_real_dimention = tuple(map(max, max_real_dimention, port_coord))
 
     max_grid_dimention = tuple(map(lambda x: int(x//unit_dimention)+1, max_real_dimention))
 
@@ -124,6 +134,9 @@ class GateAssembly:
 
   def get_gate_port_coord(self, gate_name, port_name):
     """Helper function"""
+    if gate_name == "FREE_END":
+      return self.free_end_port_dict[port_name]
+
     if gate_name in self.logic_gate_dict:
       return self.logic_gate_dict[gate_name].get_port_coord(port_name)
     else:
@@ -316,10 +329,12 @@ class GateAssembly:
 
 
 if __name__ == '__main__':
-  bpy.ops.object.select_all(action='SELECT')
-  bpy.ops.object.delete(use_global=False)
+  # bpy.ops.object.select_all(action='SELECT')
+  # bpy.ops.object.delete(use_global=False)
 
   a = GateAssembly()
+
+  a.reset_blender()
 
   gate1 = a.add_gate("g1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate1.stl")
   gate2 = a.add_gate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
@@ -327,7 +342,11 @@ if __name__ == '__main__':
   gate1.rotate_gate(15,26,37)
   gate1.scale_gate(1,3,.8)
   gate2.move_gate(13,17,20)
-  gate2.scale_gate(.3,.7,.5)
+  gate2.scale_gate(.7,.7,.5)
+  gate2.rotate_gate(5,5,30)
+
+  a.add_free_end_port("f1", (10,40,10))
+  a.add_free_end_port("f2", (45,10,10))
 
   if a.prepare_for_connection(pipe_dimention = (.5,.3), unit_dimention = 3, tip_length = 4):
 
@@ -335,9 +354,12 @@ if __name__ == '__main__':
     a.add_connection((gate1.name, "Cube"), ("g2", "Cube"))
     a.add_connection(("g1", "Ring"), ("g2", "Ring"))
     a.add_connection(("g2", "Ring"), ("g2", "IcoSphere"))
-    print(a.connection_group_list)
 
     a.add_connection(("g1", "Ring"), ("g2", "IcoSphere"))
+    a.add_connection(("g2", "Cone"), ("FREE_END", "f1"))
+    a.add_connection(("FREE_END", "f2"), ("FREE_END", "f1"))
+
+    # print(a.connection_group_list)
 
     a.update_connection_dict()
 
