@@ -1,0 +1,39 @@
+{
+  "Name": "XOR_gate",
+  "Object Dimension": [
+    4.76,
+    4.4,
+    1.5
+  ],
+  "Port Info": {
+    "Input_1": [
+      -0.8,
+      1.2,
+      -0.6
+    ],
+    "Input_2": [
+      -0.8,
+      -1.2,
+      -0.6
+    ],
+    "Output": [
+      1.5,
+      0,
+      -0.6
+    ]
+  },
+  "Connections": {
+    "Input_1": [
+      [
+        "Output",
+        0.1
+      ]
+    ],
+    "Input_2": [
+      [
+        "Output",
+        0.1
+      ]
+    ]
+  }
+}

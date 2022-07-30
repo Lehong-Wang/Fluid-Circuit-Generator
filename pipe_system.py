@@ -46,6 +46,10 @@ class PipeSystem:
     self.pipe_object_dict = {}
     # {coord : [(dest_coord, [path])]}
     self.connection_graph = {}
+    # stores user related error messages
+    self.error_message_list = []
+    # stores user related warning messages
+    self.warning_message_list = []
 
 
   def reset_grid(self, grid_dimention=None, pipe_dimention=None, unit_dimention=None, tip_length=None):
@@ -123,7 +127,7 @@ class PipeSystem:
           if self.grid_coord_in_use((grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])):
             grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2]-1)
             if grid_coord[2] < 0:
-              print(f"Error: can't find snap point for Tip_Coord{coord}")
+              self.register_error_message(f"ERROR: can't find snap point for Tip_Coord{coord}")
               return
             continue
           grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])
@@ -146,7 +150,7 @@ class PipeSystem:
       return True
     for key,value in self.port_dict.items():
       if real_grid_coord in value:
-        print("IN")
+        # print("IN")
         return True
     return False
 
@@ -243,7 +247,12 @@ class PipeSystem:
 
     curve_object.data.bevel_depth = self.pipe_dimention[0] + self.pipe_dimention[1]
     curve_object.data.bevel_resolution = 2
-    curve_object.modifiers.new("Solidify", "SOLIDIFY").thickness = self.pipe_dimention[1]
+
+    solidify_modifier_name = "Solidify"
+    curve_object.modifiers.new(solidify_modifier_name, "SOLIDIFY").thickness = self.pipe_dimention[1]
+    curve_object.modifiers[solidify_modifier_name].use_quality_normals = True
+    curve_object.modifiers[solidify_modifier_name].use_even_offset = True
+
     # fully select object
     curve_object.select_set(True)
     bpy.context.view_layer.objects.active = curve_object
@@ -421,8 +430,13 @@ class PipeSystem:
 
 
   # get the full path from two coords
+  # should not use this, but use one in Gate Assembly
   def get_path_from_graph(self, start_coord, end_coord):
-    """Triverse the graph to find path between two real world coordinates"""
+    """
+    Triverse the graph to find path between two real world coordinates
+    DO NOT USE this one, use the one in gate assembly
+    That one also considers internal connection of logic gates
+    """
     print(f"\nGetting path from {start_coord} to {end_coord}")
 
     if start_coord not in self.connection_graph:
@@ -487,7 +501,7 @@ class PipeSystem:
 
       visited_list.append(this_coord)
 
-    print("Path Not Found")
+    print(f"Error: Path Not Found for {start_coord}-{end_coord}")
     return []
 
 
@@ -538,6 +552,30 @@ class PipeSystem:
       for connection in value:
         print(f"Dest:{connection[0]}, Path:{connection[1]}")
 
+  def register_error_message(self, error_message):
+    """Helper Function"""
+    self.error_message_list.append(error_message)
+    print(error_message)
+
+  def register_warning_message(self, warning_message):
+    """Helper Function"""
+    self.warning_message_list.append(warning_message)
+    print(warning_message)
+
+  def get_error_message(self):
+    """Helper Function"""
+    grid_error_message = self.grid.get_error_message()
+    self.error_message_list.extend(grid_error_message)
+    return self.error_message_list
+
+  def get_warning_message(self):
+    """Helper Function"""
+    grid_warning_message = self.grid.get_warning_message()
+    self.warning_message_list.extend(grid_warning_message)
+    return self.warning_message_list
+
+
+
 
 
 if __name__ == '__main__':
@@ -561,6 +599,9 @@ if __name__ == '__main__':
   pi.fetch_grid_data()
   pi.print_connection_dict()
   pi.grid.print_connection_dict()
+
+  print(pi.get_error_message())
+  print(pi.get_warning_message())
 
 
 

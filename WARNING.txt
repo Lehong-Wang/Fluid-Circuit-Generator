@@ -14,3 +14,19 @@ Potential Solution:
 Potential Error:
   doesn't support float unit_dimention
   only integer
+
+
+Potential Error:
+  don't support resizeing gate to default size
+  make sure info in json is correct
+
+
+TODO:
+  add free in/out put port
+  also consider them when addjusting grid
+
+  DONE
+
+
+Potential Error:
+  don't make port too close to ground, will product error/crapy module at bend

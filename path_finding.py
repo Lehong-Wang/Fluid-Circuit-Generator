@@ -239,6 +239,10 @@ class Grid:
     # generated after all path are processed
     # {(start_node, end_node) : [path_node_list]}
     self.connection_dict = {}
+    # stores user related error messages
+    self.error_message_list = []
+    # stores user related warning messages
+    self.warning_message_list = []
 
 
 
@@ -315,7 +319,7 @@ class Grid:
       processed_node_count += 1
       # print(f"Processed Node {this_node.coord}")
 
-    print("Error: No path found")
+    self.register_error_message(f"ERROR: No path found for {start_coord} - {end_coord}")
     return []
 
 
@@ -527,7 +531,7 @@ class Grid:
         duplicate |= (start_node in end_point_tuple) and (end_node in end_point_tuple)
 
       if duplicate:
-        print(f"Error: Path from {start_node.coord} to {end_node.coord} already exists")
+        self.register_warning_message(f"WARNING: Path from {start_node.coord} to {end_node.coord} already exists")
         print("Nothing Added")
         return []
 
@@ -558,16 +562,17 @@ class Grid:
       print(f"Error: Start Node {start_node.coord} is already in use")
       return []
 
-    original_path_start_node = None
-    original_path_end_node = None
+    to_join_path_start_node = None
+    to_join_path_end_node = None
     path_to_join = []
     # find the path to join in saved_path
     for key, value in self.saved_path.items():
       if end_node in key:
-        original_path_start_node, original_path_end_node = key
+        to_join_path_start_node, to_join_path_end_node = key
         path_to_join = value
     if len(path_to_join) < 3:
-      print(f"Error: Path {list(map(lambda a: a.coord, path_to_join))} is too short to be joined")
+      self.register_error_message(f"ERROR: Path {list(map(lambda a: a.coord, path_to_join))} is too short to be joined by {start_coord}-{end_coord}")
+      return []
 
     # find point of junction
     distance = float("inf")
@@ -590,7 +595,7 @@ class Grid:
       self.saved_junction[junction_node].append(new_juction_path[-2])
       return new_juction_path
 
-    connection_nodes = self.split_path((original_path_start_node, original_path_end_node), junction_node)
+    connection_nodes = self.split_path((to_join_path_start_node, to_join_path_end_node), junction_node)
     start_junction_connect_node = connection_nodes[0]
     junction_end_connect_node = connection_nodes[1]
     new_jusction_connect_node = new_juction_path[-2]
@@ -635,14 +640,17 @@ class Grid:
         end_bridge_path = value
         end_bridge_key = key
     if start_bridge_path is end_bridge_path:
-      print(f"Error: Path from {start_node.coord} to {end_node.coord} already exists")
+      self.register_warning_message(f"WARNING: Path from {start_node.coord} to {end_node.coord} already exists")
       print("Nothing Added")
       return []
 
     print(f"Start Node {start_node.coord} -> Path {list(map(lambda a: a.coord, start_bridge_path))}")
     print(f"End Node {end_node.coord} -> Path {list(map(lambda a: a.coord, end_bridge_path))}")
-    if len(start_bridge_path) < 3 or len(end_bridge_path) < 3:
-        print("Error: Path is too short to be joined")
+    if len(start_bridge_path) < 3:
+        self.register_error_message(f"ERROR: Path {list(map(lambda a: a.coord, start_bridge_path))} is too short to be bridged by {start_coord}-{end_coord}")
+        return []
+    if len(end_bridge_path) < 3:
+        self.register_error_message(f"ERROR: Path {list(map(lambda a: a.coord, end_bridge_path))} is too short to be bridged by {start_coord}-{end_coord}")
         return []
 
     # find nodes to connect for bridge
@@ -899,12 +907,10 @@ class Grid:
                   break
 
             if len(ground_path) == 0:
-              print(f"Error: Can't find ground path of path_key {list(map(lambda a: a.coord, path_key))}")
+              self.register_error_message(f"ERROR: Can't find ground path of path_key {list(map(lambda a: a.coord, path_key))}")
           else:
-            # try:
             self.connection_dict.pop(path_key)
-            # except KeyError:
-            #   pass
+
             ground_path = path_value
 
             if is_start:
@@ -999,6 +1005,23 @@ class Grid:
       print("Connection:")
       print(f"{list(map(lambda a: a.coord, key))} : {list(map(lambda a: a.coord, value))}")
 
+  def register_error_message(self, error_message):
+    """Helper Function"""
+    self.error_message_list.append(error_message)
+    print(error_message)
+
+  def register_warning_message(self, warning_message):
+    """Helper Function"""
+    self.warning_message_list.append(warning_message)
+    print(warning_message)
+
+  def get_error_message(self):
+    """Helper Function"""
+    return self.error_message_list
+
+  def get_warning_message(self):
+    """Helper Function"""
+    return self.warning_message_list
 
 
 
@@ -1159,6 +1182,9 @@ if __name__ == '__main__':
   grid.print_saved_junction()
   grid.print_tip_ground_table()
   grid.print_connection_dict()
+
+  print(grid.error_message_list)
+  print(grid.warning_message_list)
 
   test = test_path_finding(grid)
   test.make_everything()
