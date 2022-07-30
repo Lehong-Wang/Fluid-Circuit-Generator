@@ -18,9 +18,9 @@ assembly = gate_assembly.GateAssembly()
 
 assembly.reset_blender()
 
-and_gate = assembly.add_gate("AND_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Set_Reset_Latch/STL/AND_gate.stl")
-not_gate = assembly.add_gate("NOT_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Set_Reset_Latch/STL/NOT_gate.stl")
-or_gate = assembly.add_gate("OR_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Set_Reset_Latch/STL/OR_gate.stl")
+and_gate = assembly.add_gate("AND_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/AND_gate.stl")
+not_gate = assembly.add_gate("NOT_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/NOT_gate.stl")
+or_gate = assembly.add_gate("OR_gate", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/OR_gate.stl")
 
 and_gate.move_gate(10,5,3)
 or_gate.move_gate(4,8,3)
