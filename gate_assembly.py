@@ -27,6 +27,9 @@ class GateAssembly:
   Only create one, have one Pipe System object and a dictionary of Logic Gate object
   """
 
+  stage_height = 1
+  stage_margin = .5
+
   def __init__(self):
 
     self.pipe_system = pipe_system.PipeSystem()
@@ -57,6 +60,7 @@ class GateAssembly:
 
 
   def add_free_end_port(self, port_name, port_coord):
+    """Add free end port"""
     if port_name in self.free_end_port_dict:
       self.register_warning_message(f"WARNING: Port name {port_name}, coord {self.free_end_port_dict[port_name]} already exists in free_end_port_dict, now replaced with coord {port_coord}")
     self.free_end_port_dict[port_name] = port_coord
@@ -194,9 +198,10 @@ class GateAssembly:
     start_coord = self.get_gate_port_coord(start_gate_port[0], start_gate_port[1])
     end_coord = self.get_gate_port_coord(end_gate_port[0], end_gate_port[1])
 
-    if not start_coord or not end_coord:
+    if not start_coord or not end_coord:  # either don't exist
       return 0
 
+    # Breath First Search
     search_queue = []
     visited_list = []
     last_visited = {}
@@ -253,9 +258,115 @@ class GateAssembly:
     return None
 
 
+  def add_stage(self):
+    """
+    Call this function to auto generate stage under each logic gate
+    Only call after update_connection_dict()
+    Note: this process will significantly add to program run time
+    """
+
+    for gate in self.logic_gate_dict.values():
+      # calculate stage dimentions
+      gate_max_pos = gate.get_max_pos()
+      gate_min_pos = gate.get_min_pos()
+      stage_margin = 2 * (self.stage_margin + self.pipe_system.pipe_dimention[0] + self.pipe_system.pipe_dimention[1])
+      stage_x_dim = gate_max_pos[0] - gate_min_pos[0] + stage_margin
+      stage_y_dim = gate_max_pos[1] - gate_min_pos[1] + stage_margin
+      stage_z_dim = self.stage_height
+      stage_x_pos = (gate_max_pos[0] + gate_min_pos[0])/2
+      stage_y_pos = (gate_max_pos[1] + gate_min_pos[1])/2
+      stage_z_pos = gate_min_pos[2] - self.pipe_system.tip_length
+
+      bpy.ops.mesh.primitive_cube_add()
+      stage_object = bpy.context.active_object
+      stage_object.dimensions = (stage_x_dim, stage_y_dim, stage_z_dim)
+      stage_object.location = (stage_x_pos, stage_y_pos, stage_z_pos)
+
+      # stage_min_range = tuple(map(lambda a,b: a-b/2-1, (stage_x_pos, stage_y_pos, stage_z_pos), (stage_x_dim, stage_y_dim, stage_z_dim)))
+      # stage_max_range = tuple(map(lambda a,b: a+b/2+1, (stage_x_pos, stage_y_pos, stage_z_pos), (stage_x_dim, stage_y_dim, stage_z_dim)))
+      # print(f"STAGE: pos: {(stage_x_pos, stage_y_pos, stage_z_pos)}, range: {stage_min_range}-{stage_max_range}")
+
+      to_cut_path_list = []
+      for path_coord_list in self.pipe_system.connection_dict.values():
+        # collect path within range of stage
+        to_cut_coord = []
+        for coord in path_coord_list:
+          if self.in_stage_range((stage_x_dim, stage_y_dim, stage_z_dim), (stage_x_pos, stage_y_pos, stage_z_pos), coord):
+            to_cut_coord.append(coord)
+          else:
+            if to_cut_coord:
+              to_cut_path_list.append(to_cut_coord[:])
+            to_cut_coord.clear()
+        # clear list at the end
+        if to_cut_coord:
+          to_cut_path_list.append(to_cut_coord[:])
+      print(f"Path in range of stage at {(stage_x_pos, stage_y_pos, stage_z_pos)}, Path list: {to_cut_path_list}")
+
+      for to_cut_path in to_cut_path_list:
+        if len(to_cut_path) < 2:
+          continue
+        # make solid tube from to_cut_path_list and cut out from stage
+        to_cut_sylinder = self.make_solid_sylinder(f"Cut_{(stage_x_pos, stage_y_pos, stage_z_pos)}", to_cut_path)
+        self.cut_out_with_boolean(stage_object, to_cut_sylinder)
+
+
+
+  def in_stage_range(self, stage_dim, stage_pos, coord):
+    """Helper Function"""
+    stage_min_range = tuple(map(lambda a,b: a-b/2-1, stage_pos, stage_dim))
+    stage_max_range = tuple(map(lambda a,b: a+b/2+1, stage_pos, stage_dim))
+    in_range = tuple(map(lambda a,b,c: a<=c and c<=b, stage_min_range, stage_max_range, coord))
+    return in_range[0] & in_range[1] & in_range[2]
+
+
+  def make_solid_sylinder(self, name, coord_list):
+    """Helper Function"""
+    # standard create tube
+    curve_data = bpy.data.curves.new(name, type = "CURVE")
+    curve_data.dimensions = "3D"
+
+    polyline = curve_data.splines.new("POLY")
+    polyline.points.add(len(coord_list)-1)
+    for i, coord in enumerate(coord_list):
+      x,y,z = coord
+      polyline.points[i].co = (x,y,z,1)
+
+    curve_object = bpy.data.objects.new(name, curve_data)
+    bpy.context.collection.objects.link(curve_object)
+
+    curve_object.data.bevel_depth = self.pipe_system.pipe_dimention[0] + self.pipe_system.pipe_dimention[1]/2
+    curve_object.data.bevel_resolution = 2
+    curve_object.data.use_fill_caps = True
+
+    curve_object.select_set(True)
+    bpy.context.view_layer.objects.active = curve_object
+    bpy.ops.object.convert(target = "MESH")
+    return curve_object
+
+  def cut_out_with_boolean(self, stage_object, to_cut_sylinder):
+    """Helper Function"""
+    # need exact solver for all
+    junction_modifier_name = "Boolean"
+    stage_object.modifiers.new(junction_modifier_name, "BOOLEAN").object = to_cut_sylinder
+    stage_object.modifiers[junction_modifier_name].operation = 'DIFFERENCE'
+    stage_object.modifiers[junction_modifier_name].solver = "EXACT"
+    # fully select before apply
+    stage_object.select_set(True)
+    bpy.context.view_layer.objects.active = stage_object
+    bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
+
+    bpy.data.objects.remove(to_cut_sylinder)
+    # to_cut_sylinder.hide_set(True)
+
+
+
+
+
+
 
 
   def reset_blender(self):
+    """Call this function before everything to reset blender"""
     # delete all object (including invisible ones)
     for obj in bpy.data.collections.data.objects:
       bpy.data.objects.remove(obj)

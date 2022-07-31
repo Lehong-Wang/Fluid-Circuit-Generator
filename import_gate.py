@@ -221,6 +221,13 @@ class LogicGate:
       max_pos = tuple(map(max, max_pos, port_abs_pos))
     return max_pos
 
+  def get_min_pos(self):
+    """Get the min x,y,z position"""
+    min_pos = (10000,10000,10000)
+    for port_abs_pos in self.port_abs_pos.values():
+      min_pos = tuple(map(min, min_pos, port_abs_pos))
+    return min_pos
+
 
 
 

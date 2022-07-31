@@ -30,3 +30,18 @@ TODO:
 
 Potential Error:
   don't make port too close to ground, will product error/crapy module at bend
+
+
+Potential Error:
+  better keep gate ports at same level (z)
+  might cause collision of pipe and module
+
+
+Potential TODO:
+  costom tip with module
+
+
+
+
+
+

@@ -273,6 +273,7 @@ class PipeSystem:
       if junction_coord in key:
         connection_object_dict[key] = value
 
+    cut_out_object_list = []
     for connection_coord in connection_list:
       curve_data = bpy.data.curves.new(name, type = "CURVE")
       curve_data.dimensions = "3D"
@@ -316,6 +317,7 @@ class PipeSystem:
 
       # bpy.data.objects.remove(curve_object)
       curve_object.hide_set(True)
+      cut_out_object_list.append(curve_object)
 
     # set all modifier to EXACT, use_self, and use_hole_tolerant
     for key,value in connection_object_dict.items():
@@ -327,7 +329,9 @@ class PipeSystem:
         this_modifier.use_self = True
         this_modifier.use_hole_tolerant = True
         bpy.ops.object.modifier_apply(modifier = this_modifier.name)
-
+    # delete all object made to cut out junction
+    for obj in cut_out_object_list:
+      bpy.data.objects.remove(obj)
 
 
 

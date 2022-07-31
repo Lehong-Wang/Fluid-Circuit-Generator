@@ -45,5 +45,6 @@ if assembly.prepare_for_connection(pipe_dimention = (.25,.1), unit_dimention = 1
 
 
   assembly.update_connection_dict()
+  assembly.add_stage()
 
 
