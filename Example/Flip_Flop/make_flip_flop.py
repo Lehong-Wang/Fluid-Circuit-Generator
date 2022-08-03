@@ -21,13 +21,13 @@ assembly.reset_blender()
 and_gate_1 = assembly.add_gate("AND_gate_1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/AND_gate.stl")
 and_gate_2 = assembly.add_gate("AND_gate_2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/AND_gate.stl")
 
-or_gate_1 = assembly.add_gate("OR_gate_1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/OR_gate.stl")
-or_gate_2 = assembly.add_gate("OR_gate_2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/OR_gate.stl")
+nor_gate_1 = assembly.add_gate("NOR_gate_1", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/NOR_gate.stl")
+nor_gate_2 = assembly.add_gate("NOR_gate_2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/Example/Gate_Library/NOR_gate.stl")
 
 and_gate_1.move_gate(5,10,5)
 and_gate_2.move_gate(5,5,5)
-or_gate_1.move_gate(15,10,10)
-or_gate_2.move_gate(15,5,10)
+nor_gate_1.move_gate(15,10,10)
+nor_gate_2.move_gate(15,5,10)
 
 
 assembly.add_free_end_port("Input_R", (0,15,5))
@@ -43,14 +43,14 @@ if assembly.prepare_for_connection(pipe_dimention = (.25,.1), unit_dimention = 1
   assembly.add_connection(("FREE_END", "Input_C"), ("AND_gate_2", "Input_1"))
   assembly.add_connection(("FREE_END", "Input_S"), ("AND_gate_2", "Input_2"))
 
-  assembly.add_connection(("AND_gate_1", "Output"), ("OR_gate_1", "Input_1"))
-  assembly.add_connection(("AND_gate_2", "Output"), ("OR_gate_2", "Input_2"))
+  assembly.add_connection(("AND_gate_1", "Output"), ("NOR_gate_1", "Input_1"))
+  assembly.add_connection(("AND_gate_2", "Output"), ("NOR_gate_2", "Input_2"))
 
-  assembly.add_connection(("OR_gate_1", "Output"), ("OR_gate_2", "Input_1"))
-  assembly.add_connection(("OR_gate_2", "Output"), ("OR_gate_1", "Input_2"))
+  assembly.add_connection(("NOR_gate_1", "Output"), ("NOR_gate_2", "Input_1"))
+  assembly.add_connection(("NOR_gate_2", "Output"), ("NOR_gate_1", "Input_2"))
 
-  assembly.add_connection(("OR_gate_1", "Output"), ("FREE_END", "Output_Q1"))
-  assembly.add_connection(("OR_gate_2", "Output"), ("FREE_END", "Output_Q2"))
+  assembly.add_connection(("NOR_gate_1", "Output"), ("FREE_END", "Output_Q1"))
+  assembly.add_connection(("NOR_gate_2", "Output"), ("FREE_END", "Output_Q2"))
 
   assembly.update_connection_dict()
   assembly.add_stage()
