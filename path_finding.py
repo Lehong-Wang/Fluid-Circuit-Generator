@@ -448,18 +448,34 @@ class Grid:
           self.unlink_nodes((x0, y0+1, z0), (x0+1, y0, z0+1))
           self.unlink_nodes((x0+1, y0+1, z0), (x0, y0, z0+1))
           # half cross, but dis = 0.4
-          self.unlink_nodes((x0, y0, z0), (x0, y0+1, z0+1))
-          self.unlink_nodes((x0, y0, z0), (x0+1, y0, z0+1))
+          # self.unlink_nodes((x0, y0, z0), (x0, y0+1, z0+1))
+          # self.unlink_nodes((x0, y0, z0), (x0+1, y0, z0+1))
+          # self.unlink_nodes((x0, y0, z0), (x0+1, y0+1, z0))
+          # self.unlink_nodes((x0+1, y0, z0), (x0, y0, z0+1))
+          # self.unlink_nodes((x0+1, y0, z0), (x0+1, y0+1, z0+1))
+          # self.unlink_nodes((x0+1, y0, z0), (x0, y0+1, z0))
+          # self.unlink_nodes((x0, y0+1, z0), (x0, y0, z0+1))
+          # self.unlink_nodes((x0, y0+1, z0), (x0+1, y0+1, z0+1))
+          # self.unlink_nodes((x0, y0+1, z0), (x0+1, y0, z0))
+          # self.unlink_nodes((x0+1, y0+1, z0), (x0+1, y0, z0+1))
+          # self.unlink_nodes((x0+1, y0+1, z0), (x0, y0+1, z0+1))
+          # self.unlink_nodes((x0+1, y0+1, z0), (x0, y0, z0))
+
           self.unlink_nodes((x0, y0, z0), (x0+1, y0+1, z0))
-          self.unlink_nodes((x0+1, y0, z0), (x0, y0, z0+1))
-          self.unlink_nodes((x0+1, y0, z0), (x0+1, y0+1, z0+1))
           self.unlink_nodes((x0+1, y0, z0), (x0, y0+1, z0))
-          self.unlink_nodes((x0, y0+1, z0), (x0, y0, z0+1))
-          self.unlink_nodes((x0, y0+1, z0), (x0+1, y0+1, z0+1))
-          self.unlink_nodes((x0, y0+1, z0), (x0+1, y0, z0))
-          self.unlink_nodes((x0+1, y0+1, z0), (x0+1, y0, z0+1))
+          self.unlink_nodes((x0, y0, z0), (x0+1, y0, z0+1))
+          self.unlink_nodes((x0, y0, z0+1), (x0+1, y0, z0))
+          self.unlink_nodes((x0+1, y0, z0), (x0+1, y0+1, z0+1))
+          self.unlink_nodes((x0+1, y0, z0+1), (x0+1, y0+1, z0))
           self.unlink_nodes((x0+1, y0+1, z0), (x0, y0+1, z0+1))
-          self.unlink_nodes((x0+1, y0+1, z0), (x0, y0, z0))
+          self.unlink_nodes((x0+1, y0+1, z0+1), (x0, y0+1, z0))
+          self.unlink_nodes((x0, y0+1, z0), (x0, y0, z0+1))
+          self.unlink_nodes((x0, y0+1, z0+1), (x0, y0, z0))
+          self.unlink_nodes((x0, y0, z0+1), (x0+1, y0+1, z0+1))
+          self.unlink_nodes((x0+1, y0, z0+1), (x0, y0+1, z0+1))
+
+
+
 
     print("All Cross Over Trimed")
     return
