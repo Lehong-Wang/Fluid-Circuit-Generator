@@ -41,6 +41,13 @@ Potential TODO:
   costom tip with module
 
 
+Existing Error:
+  trim-crossover not working properly
+  some 0.4 discance are left over
+  not sure why, already checked trim function
+
+
+
 
 
 
