@@ -49,6 +49,12 @@ Existing Error:
 
 
 
+Existing Error:
+  problem when ports are too close together
+  snap to grid not recognize each other
+  zig-zag pipe when snap to grid (maybe merge together)
+
+  one port have two snap
 
 
 

@@ -250,8 +250,8 @@ class PipeSystem:
 
     solidify_modifier_name = "Solidify"
     curve_object.modifiers.new(solidify_modifier_name, "SOLIDIFY").thickness = self.pipe_dimention[1]
-    curve_object.modifiers[solidify_modifier_name].use_quality_normals = True
-    curve_object.modifiers[solidify_modifier_name].use_even_offset = True
+    # curve_object.modifiers[solidify_modifier_name].use_quality_normals = True
+    # curve_object.modifiers[solidify_modifier_name].use_even_offset = True
 
     # fully select object
     curve_object.select_set(True)
@@ -582,65 +582,65 @@ class PipeSystem:
 
 
 
-if __name__ == '__main__':
-  bpy.ops.object.select_all(action='SELECT')
-  bpy.ops.object.delete(use_global=False)
-
-  pi = PipeSystem()
-
-  print(pi.grid)
-  print(pi.grid.dimention)
-  pi.connect_two_port((18,19,3), (20,20,4))
-  pi.grid.update_connection_dict()
-  pi.fetch_grid_data()
-  pi.print_connection_dict()
-
-  pi.reset_grid(grid_dimention = (30,30,20), unit_dimention = 3)
-  print(pi.grid)
-  print(pi.grid.dimention)
-  pi.connect_two_port((21,9,6), (30,30,7))
-  pi.grid.update_connection_dict()
-  pi.fetch_grid_data()
-  pi.print_connection_dict()
-  pi.grid.print_connection_dict()
-
-  print(pi.get_error_message())
-  print(pi.get_warning_message())
-
-
-
-
-
-
-
 # if __name__ == '__main__':
-
 #   bpy.ops.object.select_all(action='SELECT')
 #   bpy.ops.object.delete(use_global=False)
 
-#   pipe_system = PipeSystem()
-#   pipe_system.unit_dimention = 1
+#   pi = PipeSystem()
+
+#   print(pi.grid)
+#   print(pi.grid.dimention)
+#   pi.connect_two_port((18,19,3), (20,20,4))
+#   pi.grid.update_connection_dict()
+#   pi.fetch_grid_data()
+#   pi.print_connection_dict()
+
+#   pi.reset_grid(grid_dimention = (30,30,20), unit_dimention = 3)
+#   print(pi.grid)
+#   print(pi.grid.dimention)
+#   pi.connect_two_port((21,9,6), (30,30,7))
+#   pi.grid.update_connection_dict()
+#   pi.fetch_grid_data()
+#   pi.print_connection_dict()
+#   pi.grid.print_connection_dict()
+
+#   print(pi.get_error_message())
+#   print(pi.get_warning_message())
 
 
-#   # pipe_system.connect_two_port((15,10,2), (0,10,3))
-#   # pipe_system.connect_two_port((2,13,3),(15,10,2))
-#   # pipe_system.connect_two_port((4,3,4), (0,10,3))
-#   # pipe_system.connect_two_port((0,9,3),(15,9,3))
-#   # pipe_system.connect_two_port((1,10,5), (20,10,3))
-#   # pipe_system.connect_two_port((5,9,3),(12,9,5))
-#   # pipe_system.connect_two_port((6,9,4),(11,9,5))
-#   # pipe_system.connect_two_port((7,9,5),(10,9,5))
-#   # pipe_system.connect_two_port((0,0,5), (10,10,5))
-#   # pipe_system.connect_two_port((8,11,5),(12,0,5))
-#   # pipe_system.connect_two_port((16,11,5),(12,0,5))
-#   # pipe_system.connect_two_port((0,0,5), (12,0,5))
-#   # pipe_system.connect_two_port((4,3,4), (0,0,5))
-#   # pipe_system.connect_two_port((4,3,4), (12,0,5))
-#   # pipe_system.connect_two_port((4,3,4), (3,0,5))
-#   # pipe_system.connect_two_port((12,0,5), (6,1,4))
-#   # pipe_system.connect_two_port((15,10,2), (6,1,4))
-#   # pipe_system.connect_two_port((20,10,3), (6,1,4))
-#   # pipe_system.connect_two_port((0,10,3), (6,1,4))
+
+
+
+
+
+if __name__ == '__main__':
+
+  bpy.ops.object.select_all(action='SELECT')
+  bpy.ops.object.delete(use_global=False)
+
+  pipe_system = PipeSystem()
+  pipe_system.unit_dimention = 1
+
+
+  pipe_system.connect_two_port((15,10,2), (0,10,3))
+  pipe_system.connect_two_port((2,13,3),(15,10,2))
+  pipe_system.connect_two_port((4,3,4), (0,10,3))
+  pipe_system.connect_two_port((0,9,3),(15,9,3))
+  pipe_system.connect_two_port((1,10,5), (20,10,3))
+  pipe_system.connect_two_port((5,9,3),(12,9,5))
+  pipe_system.connect_two_port((6,9,4),(11,9,5))
+  pipe_system.connect_two_port((7,9,5),(10,9,5))
+  pipe_system.connect_two_port((0,0,5), (10,10,5))
+  pipe_system.connect_two_port((8,11,5),(12,0,5))
+  pipe_system.connect_two_port((16,11,5),(12,0,5))
+  pipe_system.connect_two_port((0,0,5), (12,0,5))
+  pipe_system.connect_two_port((4,3,4), (0,0,5))
+  pipe_system.connect_two_port((4,3,4), (12,0,5))
+  pipe_system.connect_two_port((4,3,4), (3,0,5))
+  pipe_system.connect_two_port((12,0,5), (6,1,4))
+  pipe_system.connect_two_port((15,10,2), (6,1,4))
+  pipe_system.connect_two_port((20,10,3), (6,1,4))
+  pipe_system.connect_two_port((0,10,3), (6,1,4))
 
 
 #   pipe_system.connect_two_port((15.5,10,12.3), (6,11.5,4))
@@ -648,7 +648,7 @@ if __name__ == '__main__':
 #   pipe_system.connect_two_port((0.5,10,13), (6,1,4))
 #   pipe_system.connect_two_port((5.5,7,9.9), (6,11.5,4))
 #   # pipe_system.connect_two_port((5.5,7,9.9), (15.5,10,12.3))
-#   # pipe_system.update_everything()
+  # pipe_system.update_everything()
 
 #   pipe_system.connect_two_port((5.5,8,8.7), (0,0,10))
 #   pipe_system.connect_two_port((6.5,7,9), (20,0.1,9))
@@ -658,7 +658,7 @@ if __name__ == '__main__':
 #   # pipe_system.connect_two_port((5.5,7,9.9), (5.5,8,8.7))
 
 
-#   pipe_system.finish_up_everything()
+  pipe_system.finish_up_everything()
 #   # pipe_system.grid.update_connection_dict()
 
 #   pipe_system.grid.print_connection_dict()
@@ -690,7 +690,7 @@ if __name__ == '__main__':
 
 
 
-#   # pipe_system.make_everything()
+  # pipe_system.make_everything()
 
 
 #   pipe_system.pipe_dimention = (.5,.01)
