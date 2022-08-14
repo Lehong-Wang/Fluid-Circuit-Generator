@@ -6,18 +6,11 @@ Keeps track of gates, connections, and check for duplicates
 
 
 import sys
-import importlib.util
 import bpy
 
-pipe_system_spec = importlib.util.spec_from_file_location("pipe_system.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/pipe_system.py")
-pipe_system = importlib.util.module_from_spec(pipe_system_spec)
-sys.modules["pipe_system.py"] = pipe_system
-pipe_system_spec.loader.exec_module(pipe_system)
+import fluid_circuit_generator.pipe_system as pipe_system
+import fluid_circuit_generator.import_gate as import_gate
 
-import_gate_spec = importlib.util.spec_from_file_location("import_gate.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/import_gate.py")
-import_gate = importlib.util.module_from_spec(import_gate_spec)
-sys.modules["import_gate.py"] = import_gate
-import_gate_spec.loader.exec_module(import_gate)
 
 
 

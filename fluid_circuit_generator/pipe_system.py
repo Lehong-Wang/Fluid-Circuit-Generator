@@ -11,11 +11,12 @@ from math import sqrt
 import importlib.util
 import bpy
 
-spec = importlib.util.spec_from_file_location("path_finding.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/path_finding.py")
-p = importlib.util.module_from_spec(spec)
-sys.modules["path_finding.py"] = p
-spec.loader.exec_module(p)
+# spec = importlib.util.spec_from_file_location("path_finding.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/path_finding.py")
+# p = importlib.util.module_from_spec(spec)
+# sys.modules["path_finding.py"] = p
+# spec.loader.exec_module(p)
 
+import fluid_circuit_generator.path_finding as p
 
 
 
