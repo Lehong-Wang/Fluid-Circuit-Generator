@@ -16,7 +16,7 @@ import bpy
 # sys.modules["path_finding.py"] = p
 # spec.loader.exec_module(p)
 
-import test_whole_addon.path_finding as p
+import fluid_circuit_generator.path_finding as p
 
 
 

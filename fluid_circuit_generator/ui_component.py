@@ -1,7 +1,11 @@
 
-
-
-
+"""
+UI Component
+All the UI is in this file.
+This file is mostly independent from the rest of the program
+Only call functions form gate_assembly at the end when making the final module
+All other functionalities can be run with this file alone
+"""
 
 
 
@@ -11,27 +15,27 @@ from math import radians, sin, cos
 import numpy as np
 import bpy
 
+import fluid_circuit_generator.gate_assembly as gate_assembly
 
-import test_whole_addon.gate_assembly as gate_assembly
 
-
-# bl_info = {
-#   "name": "test UI addon",
-#   "author": "Name",
-#   "version": (1, 0),
-#   "blender": (2, 80, 0),
-#   "location": "SpaceBar Search -> Add-on Preferences Example",
-#   "description": "test UI addon",
-#   "warning": "",
-#   "doc_url": "",
-#   "tracker_url": "",
-#   "category": "Mesh",
-# }
-
+bl_info = {
+  "name": "test UI addon",
+  "author": "Name",
+  "version": (1, 0),
+  "blender": (2, 80, 0),
+  "location": "SpaceBar Search -> Add-on Preferences Example",
+  "description": "test UI addon",
+  "warning": "",
+  "doc_url": "",
+  "tracker_url": "",
+  "category": "Mesh",
+}
 
 
 
+# change the maxium number of connection allowed here
 MAX_NUM_OF_CONNECTIONS = 20
+
 
 ############################################################################
 ################################  Operater  ################################
@@ -39,6 +43,11 @@ MAX_NUM_OF_CONNECTIONS = 20
 
 
 class MESH_OT_reset_my_addon(bpy.types.Operator):
+  """
+  The Reset button at the top
+  Delete all addon data
+  Reset all your choices to default
+  """
   bl_idname = "mesh.reset_my_addon"
   bl_label = "Reset My Addon"
 
@@ -57,6 +66,11 @@ class MESH_OT_reset_my_addon(bpy.types.Operator):
     bpy.types.MESH_OT_make_assembly.connection_list.clear()
     bpy.types.MESH_OT_make_assembly.assembly = gate_assembly.GateAssembly()
 
+    # reset property to default
+    bpy.context.scene.property_unset("connection_property")
+    bpy.context.scene.property_unset("pipe_property")
+    bpy.context.scene.property_unset("ui_property")
+
 
     print("Addon Reset")
     return {'FINISHED'}
@@ -64,6 +78,10 @@ class MESH_OT_reset_my_addon(bpy.types.Operator):
 
 
 class MESH_OT_add_gate_object(bpy.types.Operator):
+  """
+  Add a Logic Gate object by stl file
+  Or add a free end pointer object
+  """
   bl_idname = "mesh.add_gate_object"
   bl_label = "Add Logic Gate Object"
 
@@ -75,12 +93,9 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
     else:
       file_path = bpy.context.scene.ui_property.fake_stl_file_path
 
-    print(file_path)
     abs_path = bpy.path.abspath(file_path)
-    print(abs_path)
-
     root,ext = os.path.splitext(abs_path)
-
+    # check validation of file path
     if ext != ".stl":
       self.report(
         {"ERROR"},
@@ -103,7 +118,7 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
 
     if is_free_end:
       return {'FINISHED'}
-
+    # check json file
     json_path = root + ".json"
     imported_object.gate_property.json_file_path = json_path
     if not os.path.exists(json_path):
@@ -120,8 +135,17 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
 
 
 
-
+# Blender have problem supporting dynamic lists of properties
+# To work around that, all the properties are pre-created
+# If connection added, give value to pre-created property and display it
+# This is why there is a limit of how many connections you can add
+# Set the limit by changing the MAX_NUM_OF_CONNECTIONS at top of file
 class MESH_OT_add_gate_connection(bpy.types.Operator):
+  """
+  Add a connection choice row
+  Only show the properties with value assigned
+  Which creates an illusion of dynamic lists
+  """
   bl_idname = "mesh.add_gate_connection"
   bl_label = "Add gate connection"
 
@@ -155,6 +179,10 @@ class MESH_OT_add_gate_connection(bpy.types.Operator):
 
 
 class MESH_OT_choose_connection_port(bpy.types.Operator):
+  """
+  Generic button to choose a port for a logic gate connection
+  Pass in different arguments for different ports
+  """
   bl_idname = "mesh.choose_connection_port"
   bl_label = "Choose Connection Port"
 
@@ -175,9 +203,11 @@ class MESH_OT_choose_connection_port(bpy.types.Operator):
 
 
 
-
-
 class MESH_OT_cancel_connection_port(bpy.types.Operator):
+  """
+  This button show up after pressing button for choosing port
+  This operator delete the choice and allow reselect
+  """
   bl_idname = "mesh.cancel_connection_port"
   bl_label = "Cancel Connection Port"
 
@@ -204,6 +234,15 @@ class MESH_OT_cancel_connection_port(bpy.types.Operator):
 
 
 class MESH_OT_make_assembly(bpy.types.Operator):
+  """
+  The magic button that does everything
+  WARNING: Pressing this button is irreversable
+    It will delete all your choices and make the logic gates invalid
+    But it did give you the final product
+    Only Press this after you checked everything is correct
+  This button is the only connection between UI and backend
+  It calls functions from gate_assembly to build the circuit
+  """
   bl_idname = "mesh.make_assembly"
   bl_label = "Make Assembly"
 
@@ -215,6 +254,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
   def execute(self, context):
 
+    # check valid input
     try:
       bpy.ops.mesh.check_connection_selection()
     except RuntimeError:
@@ -228,12 +268,12 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
     self.assembly.reset_blender()
 
-
-    # self.assembly.add_gate("g2", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/STL/gate2.stl")
     print("\n Positioning all gates")
     self.place_all_gates()
     self.add_all_connections()
 
+    # if bpy.context.scene.pipe_property.add_stage:
+    #   self.assembly.add_stage()
 
 
     bpy.context.scene.ui_property.confirm_make_assembly = False
@@ -245,6 +285,9 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
   def get_all_gates(self):
+    """
+    Collect all the gate / free_end info and put into gate_list
+    """
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
 
@@ -254,7 +297,8 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     for n in range(MAX_NUM_OF_CONNECTIONS):
       for gate_name in name_list:
         gate_obj = getattr(connect_prop, f"{gate_name}{n}")
-        if gate_obj and not gate_obj in recorded_gate_list:
+        # not recorded
+        if gate_obj and not (gate_obj in recorded_gate_list):
           # free end
           if gate_obj.gate_property.is_free_end:
             # add free end
@@ -262,8 +306,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
             free_end_pos = tuple(gate_obj.location)
             print(f"Free end: {gate_obj}, pos: {free_end_pos}")
             record_unit = (True, free_end_name, free_end_pos)
-
-            # self.assembly.add_free_end_port(free_end_name, free_end_pos)
 
           # logic gate
           else:
@@ -286,10 +328,12 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
   def get_all_connections(self):
+    """
+    Collect all the connection_info and put into connection_list
+    """
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
     connection_dict = connect_prop.connection_dict
-
 
     for n in range(MAX_NUM_OF_CONNECTIONS):
       connection_unit = []
@@ -312,6 +356,9 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
   def place_all_gates(self):
+    """
+    Add Logic Gate and Free End
+    """
     for gate_info in self.gate_list:
       is_free_end = gate_info[0]
 
@@ -327,11 +374,15 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
   def add_all_connections(self):
+    """
+    Add Connections
+    """
     pipe_prop = bpy.context.scene.pipe_property
     inner_radius = pipe_prop.pipe_inner_radius
     thickness = pipe_prop.pipe_thickness
     unit_dim = pipe_prop.unit_dimention
-    tip_len = pipe_prop.tip_length
+    # tip_len = pipe_prop.tip_length
+    tip_len = unit_dim / 2
     if self.assembly.prepare_for_connection(pipe_dimention = (inner_radius,thickness), unit_dimention = unit_dim, tip_length = tip_len):
 
       for connection_unit in self.connection_list:
@@ -345,7 +396,13 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
 
+
+
 class MESH_OT_check_connection_selection(bpy.types.Operator):
+  """
+  Helper Operator
+  Check if user input for connection is complete
+  """
   bl_idname = "mesh.check_connection_selection"
   bl_label = "Check Connection Selection"
 
@@ -361,6 +418,9 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
 
 
   def check_gate_selected(self):
+    """
+    Check if full rows of gate are selected
+    """
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
 
@@ -402,6 +462,9 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
 
 
   def check_port_select(self):
+    """
+    Check of Logic Gate object have port selected
+    """
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
     connection_dict = connect_prop.connection_dict
@@ -426,6 +489,12 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
 
 
   def filter_free_port_from_dict(self):
+    """
+    Deals with a paticular bug where
+      user first finished choosing gate and port,
+      but then turn the gate to a free port and the port info is still there
+    This function looks for that and delete them
+    """
     connect_prop = bpy.context.scene.connection_property
     connection_dict = connect_prop.connection_dict
     name_list = connect_prop.generic_gate_name_list
@@ -443,21 +512,22 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
 
 
 
-
 class MESH_OT_make_preview_pipe(bpy.types.Operator):
+  """
+  Makes a example section of pipe,
+    so user can get a feel for the dimensions of the pipe, tip, stage, etc
+  """
   bl_idname = "mesh.make_preview_pipe"
   bl_label = "Make Preview Pipe"
 
   def execute(self, context):
 
-
-  # def make_preview_pipe(self):
     pipe_prop = bpy.context.scene.pipe_property
     inner_radius = pipe_prop.pipe_inner_radius
     thickness = pipe_prop.pipe_thickness
     unit_dim = pipe_prop.unit_dimention
     fillet_dim = .7 * (inner_radius + thickness)
-
+    # dot list for example pipe
     dot_list = [
       (0, 2*unit_dim, 0),
       (0, fillet_dim, 0),
@@ -470,7 +540,7 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
     stage_name = "Test Stage"
     tip_name = "Test Tip"
 
-
+    # delete previous preview objects
     try:
       bpy.data.objects.remove(bpy.data.objects[pipe_name])
     except KeyError:
@@ -523,6 +593,7 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
       offset = pipe_prop.tip_offset
       tip_pos = dot_list[-1]
 
+      # handles tip stl
       abs_path = bpy.path.abspath(stl_path)
       root,ext = os.path.splitext(abs_path)
 
@@ -578,6 +649,10 @@ PREVIEW_PIPE_NAME = "Preview Pipe"
 
 
 class MESH_OT_make_preview_connection(bpy.types.Operator):
+  """
+  Makes a staight line for all the connections,
+    so it's easier for the user to check if connections are correct
+  """
   bl_idname = "mesh.make_preview_connection"
   bl_label = "Make Preview Connection"
 
@@ -594,7 +669,7 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       bpy.ops.mesh.check_connection_selection()
     except RuntimeError:
       return {'CANCELLED'}
-
+    # clear previous data
     self.gate_port_dict.clear()
     self.gate_port_abs_dict.clear()
     self.connection_list.clear()
@@ -608,15 +683,16 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
     self.get_all_connections()
     self.make_preview_connections()
 
+    # mark the preview is made, show the delete button
     bpy.context.scene.ui_property.preview_is_shown = True
-
-
-
 
     return {'FINISHED'}
 
 
   def collect_port_info(self):
+    """
+    Collect all the gate port info and put into gate_port_dict
+    """
     have_valid_gate = False
     for obj in bpy.context.scene.objects:
       stl_path = obj.gate_property.stl_file_path
@@ -642,6 +718,9 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
 
   def update_port_pos(self):
+    """
+    Calculate all the absolute port position and store in gate_port_abs_dict
+    """
     for key,value in self.gate_port_dict.items():
       gate_obj = bpy.context.scene.objects[key]
       gate_pos = list(gate_obj.location)
@@ -664,8 +743,9 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
   # apply transformations to relative port pos
   def calculate_abs_pos(self, placement_data, port_pos):
-    """Recalculate the absolute port position"""
-    # print(f"Relative Port Pos for gate {self.name}: {self.port_dict.items()}")
+    """
+    Helper function to calculate the absolute port position
+    """
 
     # Linear Algibra, Euler rotation
     x,y,z = placement_data[1]
@@ -698,6 +778,9 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
 
   def update_free_end_pos(self):
+    """
+    Collect free_end port info and put into gate_port_dict
+    """
     for obj in bpy.context.scene.objects:
       if obj.gate_property.is_free_end:
         obj_name = obj.name
@@ -707,6 +790,9 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
 
   def get_all_connections(self):
+    """
+    Collect all the connection info and put into connection_list
+    """
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
     connection_dict = connect_prop.connection_dict
@@ -731,6 +817,9 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
 
   def make_preview_connections(self):
+    """
+    Use info form connect_list and gate_port_abs_dict to make preview connections
+    """
     for connection_unit in self.connection_list:
       start_port = connection_unit[0]
       end_port = connection_unit[1]
@@ -760,6 +849,10 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
 
 class MESH_OT_delete_preview_connection(bpy.types.Operator):
+  """
+  Delete the preview connections
+  The button only shows when the preview_connections are made
+  """
   bl_idname = "mesh.delete_preview_connection"
   bl_label = "Delete Preview Connection"
 
@@ -790,6 +883,11 @@ DEFAULT_TIP_STL = "/Users/lhwang/Desktop/pipe_tip.stl"
 
 
 class GatePropertyGroup(bpy.types.PropertyGroup):
+  """
+  Gate Property Group
+  Avaliable in each obejct
+  Stores property related to logic gates
+  """
   is_free_end: bpy.props.BoolProperty(default=False)
   stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default="")
   json_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default="")
@@ -797,12 +895,18 @@ class GatePropertyGroup(bpy.types.PropertyGroup):
 
 
 class ConnectionPropertyGroup(bpy.types.PropertyGroup):
+  """
+  Connection Property Group
+  Avaliable in bpy.context.scene
+  Stores property related to pipe connections
+  """
   generic_gate_name_list = [
     "start_gate_",
     "end_gate_",
   ]
+  # stores connection info for making final circuit
   connection_dict = {}
-
+  # pre-create all the virables used to store conneciton choices
   for n in range(MAX_NUM_OF_CONNECTIONS):
     for prop_name in generic_gate_name_list:
       exec(f"{prop_name}{n} : bpy.props.PointerProperty(type=bpy.types.Object)")
@@ -810,13 +914,25 @@ class ConnectionPropertyGroup(bpy.types.PropertyGroup):
 
 
 class UIPropertyGroup(bpy.types.PropertyGroup):
+  """
+  UI Property Group
+  Avaliable in bpy.context.scene
+  Stores property related to UI components
+  """
   fake_is_free_end: bpy.props.BoolProperty(default=False)
-  fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=FREE_END_STL)
+  fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH')
   confirm_make_assembly: bpy.props.BoolProperty(default=False)
   preview_pipe_thickness: bpy.props.FloatProperty(default=.5, min=0, soft_max=1)
   preview_is_shown: bpy.props.BoolProperty(default=False)
 
+
+
 class PipePropertyGroup(bpy.types.PropertyGroup):
+  """
+  Pipe Property Group
+  Avaliable in bpy.context.scene
+  Stores property related to pipe settings
+  """
   pipe_inner_radius: bpy.props.FloatProperty(
     default = .2,
     min = 0,
@@ -875,12 +991,16 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
 
 
 
-ADDON_PANNEL_LABEL = "MyAddon"
+ADDON_PANNEL_LABEL = "Fluid Circuit Generator"
 
 
 
 
 class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
+  """
+  Main Panel
+  Has Create Monkey and Reset Addon
+  """
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
@@ -889,12 +1009,8 @@ class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
 
   def draw(self, context):
     layout = self.layout
-    layout.operator("mesh.primitive_cube_add")
-    layout.operator("mesh.reset_my_addon")
-
-
-
-
+    layout.operator("mesh.primitive_monkey_add")
+    layout.operator("mesh.reset_my_addon", text="Reset Addon")
 
 
 
@@ -902,6 +1018,11 @@ class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
 
 
 class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
+  """
+  Add Gate Panel
+  Add Logic Gate or Free End
+  Also shows transformation info
+  """
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
@@ -939,6 +1060,12 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
 
 
 class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
+  """
+  Add Connection Panel
+  A table of connection choices
+  Add row by pressing Add button
+  Remove a row by crossing out all the gate selections in a row
+  """
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
@@ -952,7 +1079,6 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
     layout.operator("mesh.add_gate_connection")
 
 
-
     # draw title
     connection_box = layout.box()
     title_row = connection_box.row(align=True)
@@ -962,7 +1088,7 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
     end_row.alignment = 'CENTER'
     start_row.label(text="Start Gate")
     end_row.label(text="End Gate")
-
+    # table columns
     connection_inner_row = connection_box.row()
     start_col = connection_inner_row.column()
     start_col.ui_units_x = 4
@@ -994,6 +1120,10 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
 
 
   def draw_connection_selection(self, n, connection_col_list):
+    """
+    Draw a selection row
+    Also handles uneven height between left, middle, right column
+    """
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
     # return the height of this UI part
@@ -1068,6 +1198,11 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
 
 
 class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
+  """
+  Pipe Property Panel
+  A table of pipe properties
+  Can create a preview pipe to visualize your choices
+  """
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
@@ -1108,9 +1243,18 @@ class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
 
 
 
-
-
 class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
+  """
+  Make Assembly Pannel
+  Where you make your final circuit
+  First press the Make Preview Connection button to check if the connections are right
+    preview can be generated without affecting your choices
+  When everything look right, check the confirm box to display the Make Assembly button
+  WARNING: Pressing the Make Assembly button is irreversiable
+    only do so when everything looks right
+    it will delete all objects and your choices
+    you will need to restart again if something is wrong
+  """
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
@@ -1178,6 +1322,7 @@ class_to_register = [
 
 
 def register_properties():
+  """Register Properties"""
   bpy.types.Object.gate_property = bpy.props.PointerProperty(type=GatePropertyGroup)
   bpy.types.Scene.connection_property = bpy.props.PointerProperty(type=ConnectionPropertyGroup)
   bpy.types.Scene.ui_property = bpy.props.PointerProperty(type=UIPropertyGroup)
@@ -1187,6 +1332,7 @@ def register_properties():
 
 
 def unregister_properties():
+  """unregister Properties"""
   del bpy.types.Object.gate_property
   del bpy.types.Scene.connection_property
   del bpy.types.Scene.ui_property
@@ -1197,6 +1343,7 @@ def unregister_properties():
 
 
 def register():
+  """Register"""
   for cls in class_to_register:
     bpy.utils.register_class(cls)
   register_properties()
@@ -1206,6 +1353,7 @@ def register():
 
 
 def unregister():
+  """UnRegister"""
   for cls in class_to_register:
     bpy.utils.unregister_class(cls)
   unregister_properties()
