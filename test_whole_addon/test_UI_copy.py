@@ -7,7 +7,10 @@
 
 import json
 import os
+from math import radians, sin, cos
+import numpy as np
 import bpy
+
 
 import test_whole_addon.gate_assembly as gate_assembly
 
@@ -143,7 +146,7 @@ class MESH_OT_add_gate_connection(bpy.types.Operator):
     self.report(
       {"ERROR"},
       "Reached maxium number of connections"
-      )
+    )
     return {'CANCELLED'}
 
 
@@ -211,9 +214,10 @@ class MESH_OT_make_assembly(bpy.types.Operator):
   assembly = gate_assembly.GateAssembly()
 
   def execute(self, context):
-    if not self.check_gate_selected():
-      return {'CANCELLED'}
-    if not self.check_port_select():
+
+    try:
+      bpy.ops.mesh.check_connection_selection()
+    except RuntimeError:
       return {'CANCELLED'}
 
     self.get_all_gates()
@@ -235,87 +239,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     bpy.context.scene.ui_property.confirm_make_assembly = False
 
     return {'FINISHED'}
-
-
-
-
-
-
-  def check_gate_selected(self):
-    connect_prop = bpy.context.scene.connection_property
-    name_list = connect_prop.generic_gate_name_list
-
-    something_selected = False
-
-    for n in range(MAX_NUM_OF_CONNECTIONS):
-      row_all_selected = True
-      row_all_empty = True
-
-      for gate_name in name_list:
-        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
-        # none gate object selected
-        if gate_obj and gate_obj.gate_property.stl_file_path == "":
-          self.report(
-            {'ERROR'},
-            "Invalid object is selected"
-          )
-          return False
-        if gate_obj:
-          row_all_empty = False
-          something_selected = True
-        else:
-          row_all_selected = False
-      # partially selected
-      if row_all_empty == row_all_selected:
-        self.report(
-          {'ERROR'},
-          "Gate Object Not Properly Selected"
-        )
-        return False
-      if not something_selected:
-        self.report(
-          {'ERROR'},
-          "No Connection Added"
-        )
-    print("Gate Properly Selected")
-    return True
-
-
-  def check_port_select(self):
-    connect_prop = bpy.context.scene.connection_property
-    name_list = connect_prop.generic_gate_name_list
-    connection_dict = connect_prop.connection_dict
-
-    self.filter_free_port_from_dict()
-
-    for n in range(MAX_NUM_OF_CONNECTIONS):
-
-      for i,gate_name in enumerate(name_list):
-        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
-        # not free end
-        if gate_obj and not gate_obj.gate_property.is_free_end:
-          key = (n,i)
-          if not key in connection_dict:
-            self.report(
-              {'ERROR'},
-              "Port Not Fully Selected"
-            )
-            return False
-    print("Port Properly Selected")
-    return True
-
-  def filter_free_port_from_dict(self):
-    connect_prop = bpy.context.scene.connection_property
-    connection_dict = connect_prop.connection_dict
-    name_list = connect_prop.generic_gate_name_list
-    to_pop_key_list = []
-    for key in connection_dict.keys():
-      n,i = key
-      gate_obj = getattr(connect_prop, f"{name_list[i]}{n}")
-      if gate_obj and gate_obj.gate_property.is_free_end:
-        to_pop_key_list.append(key)
-    for key in to_pop_key_list:
-      connection_dict.pop(key)
 
 
 
@@ -388,9 +311,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
 
-
-
-
   def place_all_gates(self):
     for gate_info in self.gate_list:
       is_free_end = gate_info[0]
@@ -407,16 +327,118 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
   def add_all_connections(self):
-    if self.assembly.prepare_for_connection(pipe_dimention = (.2,.15), unit_dimention = 1, tip_length = 2):
+    pipe_prop = bpy.context.scene.pipe_property
+    inner_radius = pipe_prop.pipe_inner_radius
+    thickness = pipe_prop.pipe_thickness
+    unit_dim = pipe_prop.unit_dimention
+    tip_len = pipe_prop.tip_length
+    if self.assembly.prepare_for_connection(pipe_dimention = (inner_radius,thickness), unit_dimention = unit_dim, tip_length = tip_len):
 
       for connection_unit in self.connection_list:
 
         self.assembly.add_connection(connection_unit[0], connection_unit[1])
-    
+
     self.assembly.update_connection_dict()
 
     print(self.assembly.get_warning_message())
     print(self.assembly.get_error_message())
+
+
+
+class MESH_OT_check_connection_selection(bpy.types.Operator):
+  bl_idname = "mesh.check_connection_selection"
+  bl_label = "Check Connection Selection"
+
+  def execute(self, context):
+    if not self.check_gate_selected():
+      return {'CANCELLED'}
+    if not self.check_port_select():
+      return {'CANCELLED'}
+
+    return {'FINISHED'}
+
+
+
+
+  def check_gate_selected(self):
+    connect_prop = bpy.context.scene.connection_property
+    name_list = connect_prop.generic_gate_name_list
+
+    something_selected = False
+
+    for n in range(MAX_NUM_OF_CONNECTIONS):
+      row_all_selected = True
+      row_all_empty = True
+
+      for gate_name in name_list:
+        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
+        # none gate object selected
+        if gate_obj and gate_obj.gate_property.stl_file_path == "":
+          self.report(
+            {'ERROR'},
+            "Invalid object is selected"
+          )
+          return False
+        if gate_obj:
+          row_all_empty = False
+          something_selected = True
+        else:
+          row_all_selected = False
+      # partially selected
+      if row_all_empty == row_all_selected:
+        self.report(
+          {'ERROR'},
+          "Gate Object Not Properly Selected"
+        )
+        return False
+    if not something_selected:
+      self.report(
+        {'ERROR'},
+        "No Valid Connection"
+      )
+    print("Gate Properly Selected")
+    return True
+
+
+
+  def check_port_select(self):
+    connect_prop = bpy.context.scene.connection_property
+    name_list = connect_prop.generic_gate_name_list
+    connection_dict = connect_prop.connection_dict
+
+    self.filter_free_port_from_dict()
+
+    for n in range(MAX_NUM_OF_CONNECTIONS):
+
+      for i,gate_name in enumerate(name_list):
+        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
+        # not free end
+        if gate_obj and not gate_obj.gate_property.is_free_end:
+          key = (n,i)
+          if not key in connection_dict:
+            self.report(
+              {'ERROR'},
+              "Port Not Fully Selected"
+            )
+            return False
+    print("Port Properly Selected")
+    return True
+
+
+  def filter_free_port_from_dict(self):
+    connect_prop = bpy.context.scene.connection_property
+    connection_dict = connect_prop.connection_dict
+    name_list = connect_prop.generic_gate_name_list
+    to_pop_key_list = []
+    for key in connection_dict.keys():
+      n,i = key
+      gate_obj = getattr(connect_prop, f"{name_list[i]}{n}")
+      if gate_obj and gate_obj.gate_property.is_free_end:
+        to_pop_key_list.append(key)
+    for key in to_pop_key_list:
+      connection_dict.pop(key)
+
+
 
 
 
@@ -445,12 +467,24 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
       (unit_dim, 0, 2*unit_dim),
     ]
     pipe_name = "Test Tube"
+    stage_name = "Test Stage"
+    tip_name = "Test Tip"
+
 
     try:
       bpy.data.objects.remove(bpy.data.objects[pipe_name])
     except KeyError:
       pass
+    try:
+      bpy.data.objects.remove(bpy.data.objects[stage_name])
+    except KeyError:
+      pass
+    try:
+      bpy.data.objects.remove(bpy.data.objects[tip_name])
+    except KeyError:
+      pass
 
+    # make pipe
     curve_data = bpy.data.curves.new(pipe_name, type = "CURVE")
     curve_data.dimensions = "3D"
 
@@ -468,7 +502,279 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
     solidify_modifier_name = "Solidify"
     curve_object.modifiers.new(solidify_modifier_name, "SOLIDIFY").thickness = thickness
 
+    # add stage
+    if pipe_prop.add_stage:
+
+      height = pipe_prop.stage_height
+      length = 2*(pipe_prop.stage_rim_size + inner_radius + thickness)
+      offset = pipe_prop.tip_offset
+      tip_pos = dot_list[-1]
+      stage_pos = (tip_pos[0], tip_pos[1], tip_pos[2]-offset-height/2)
+
+      bpy.ops.mesh.primitive_cube_add()
+      stage_cube = bpy.context.active_object
+      stage_cube.name = stage_name
+      stage_cube.dimensions = (length, length, height)
+      stage_cube.location = stage_pos
+
+    # add tip
+    if pipe_prop.add_custom_tip:
+      stl_path = pipe_prop.tip_stl_path
+      offset = pipe_prop.tip_offset
+      tip_pos = dot_list[-1]
+
+      abs_path = bpy.path.abspath(stl_path)
+      root,ext = os.path.splitext(abs_path)
+
+      if ext != ".stl":
+        self.report(
+          {"ERROR"},
+          f"File is Not an STL file, file: {abs_path}"
+          )
+        return {"CANCELLED"}
+
+      try:
+        bpy.ops.import_mesh.stl(filepath = abs_path)
+      except FileNotFoundError:
+        self.report(
+          {"ERROR"},
+          f"File Not Exist at {abs_path}"
+          )
+        return {"CANCELLED"}
+
+      tip_obj = bpy.context.active_object
+
+      json_path = root + ".json"
+      if not os.path.exists(json_path):
+        self.report(
+          {"ERROR"},
+          f"Corresponding Json file not found for file {abs_path}"
+        )
+        return {"CANCELLED"}
+
+      with open(json_path, 'r') as f:
+        json_data = json.load(f)
+        obj_dim = list(json_data["Object Dimension"])
+        pipe_dim = list(json_data["Pipe Dimension"])
+        tip_radius = pipe_dim[0] + pipe_dim[1]
+
+      inner_radius = pipe_prop.pipe_inner_radius
+      thickness = pipe_prop.pipe_thickness
+      target_radius = inner_radius + thickness
+      target_scale = target_radius / tip_radius
+
+      tip_obj.name = tip_name
+      tip_obj.scale = (target_scale, target_scale, 1)
+      tip_obj.location = (tip_pos[0], tip_pos[1], tip_pos[2]-offset)
+
+
     return {'FINISHED'}
+
+
+
+
+
+PREVIEW_PIPE_NAME = "Preview Pipe"
+
+
+class MESH_OT_make_preview_connection(bpy.types.Operator):
+  bl_idname = "mesh.make_preview_connection"
+  bl_label = "Make Preview Connection"
+
+  # { gate_name : [ (port_name, [pos]), ... ] }
+  gate_port_dict = {}
+  # { (gate_name, port_name) : [pos] }
+  gate_port_abs_dict = {}
+  # [ [(start_name, port_name), (end_name, port_name)], [...] ]
+  connection_list = []
+
+  def execute(self, context):
+
+    try:
+      bpy.ops.mesh.check_connection_selection()
+    except RuntimeError:
+      return {'CANCELLED'}
+
+    self.gate_port_dict.clear()
+    self.gate_port_abs_dict.clear()
+    self.connection_list.clear()
+
+
+    if not self.collect_port_info():
+      return {'CANCELLED'}
+
+    self.update_port_pos()
+    self.update_free_end_pos()
+    self.get_all_connections()
+    self.make_preview_connections()
+
+    bpy.context.scene.ui_property.preview_is_shown = True
+
+
+
+
+    return {'FINISHED'}
+
+
+  def collect_port_info(self):
+    have_valid_gate = False
+    for obj in bpy.context.scene.objects:
+      stl_path = obj.gate_property.stl_file_path
+      # is valid gate object
+      if stl_path and stl_path != FREE_END_STL:
+        have_valid_gate = True
+
+        json_path = obj.gate_property.json_file_path
+
+        with open(json_path, 'r') as f:
+          json_data = json.load(f)
+          port_list = list(json_data["Port Info"].items())
+          # print(port_list)
+          self.gate_port_dict[obj.name] = port_list
+    print(self.gate_port_dict)
+    if not have_valid_gate:
+      self.report(
+        {'ERROR'},
+        "No Valid Gate Object"
+      )
+      return False
+    return True
+
+
+  def update_port_pos(self):
+    for key,value in self.gate_port_dict.items():
+      gate_obj = bpy.context.scene.objects[key]
+      gate_pos = list(gate_obj.location)
+      gate_rot = list(gate_obj.rotation_euler)
+      gate_rot_radians = list(map(radians, gate_rot))
+      gate_scl = list(gate_obj.scale)
+
+      placement_data = (gate_pos, gate_rot_radians, gate_scl)
+
+      for port_unit in value:
+        port_name = port_unit[0]
+        port_pos = port_unit[1]
+        abs_port_pos = self.calculate_abs_pos(placement_data, port_pos)
+
+        self.gate_port_abs_dict[(key, port_name)] = abs_port_pos
+
+    print(self.gate_port_abs_dict)
+
+
+
+  # apply transformations to relative port pos
+  def calculate_abs_pos(self, placement_data, port_pos):
+    """Recalculate the absolute port position"""
+    # print(f"Relative Port Pos for gate {self.name}: {self.port_dict.items()}")
+
+    # Linear Algibra, Euler rotation
+    x,y,z = placement_data[1]
+    # print("\n\nX,Y,Z to rotate",x,y,z)
+    x_matrix = np.array([[1, 0, 0],\
+                          [0, cos(x), -sin(x)],\
+                          [0, sin(x), cos(x)]])
+
+    y_matrix = np.array([[cos(y), 0, sin(y)],\
+                          [0, 1, 0],\
+                          [-sin(y), 0, cos(y)]])
+
+    z_matrix = np.array([[cos(z), -sin(z), 0],\
+                          [sin(z), cos(z), 0],\
+                          [0, 0, 1]])
+
+    # scale -> ratate -> move
+    scaled_pos = list(map(lambda a,b: a*b, port_pos, placement_data[2]))
+
+    vector_before = np.array([scaled_pos[0], scaled_pos[1], scaled_pos[2]])
+    vector_after = np.dot(np.dot(z_matrix, y_matrix), np.dot(x_matrix, vector_before))
+    rotated_pos = list(vector_after)
+
+    moved_pos = list(map(lambda a,b: a+b, rotated_pos, placement_data[0]))
+    rounded_pos = list(map(lambda a: round(a,2), moved_pos))
+
+    print(f"Port Pos: {port_pos} -> {rounded_pos}")
+    return rounded_pos
+
+
+
+  def update_free_end_pos(self):
+    for obj in bpy.context.scene.objects:
+      if obj.gate_property.is_free_end:
+        obj_name = obj.name
+        obj_pos = obj.location
+        self.gate_port_abs_dict[("FREE_END", obj_name)] = obj_pos
+
+
+
+  def get_all_connections(self):
+    connect_prop = bpy.context.scene.connection_property
+    name_list = connect_prop.generic_gate_name_list
+    connection_dict = connect_prop.connection_dict
+
+    for n in range(MAX_NUM_OF_CONNECTIONS):
+      connection_unit = []
+      for i,gate_name in enumerate(name_list):
+        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
+        if gate_obj:
+          # gate
+          if not gate_obj.gate_property.is_free_end:
+            port_name = connection_dict[(n,i)]
+            connection_unit.append((gate_obj.name, port_name))
+          # free end
+          else:
+            connection_unit.append(("FREE_END", gate_obj.name))
+      if connection_unit:
+        print(f"Added connection unit {connection_unit}")
+        self.connection_list.append(connection_unit)
+
+    print(self.connection_list)
+
+
+  def make_preview_connections(self):
+    for connection_unit in self.connection_list:
+      start_port = connection_unit[0]
+      end_port = connection_unit[1]
+
+      start_pos = self.gate_port_abs_dict[start_port]
+      end_pos = self.gate_port_abs_dict[end_port]
+
+      preview_connection = [start_pos, end_pos]
+
+      # make pipe
+      curve_data = bpy.data.curves.new(PREVIEW_PIPE_NAME, type = "CURVE")
+      curve_data.dimensions = "3D"
+
+      polyline = curve_data.splines.new("POLY")
+      polyline.points.add(len(preview_connection)-1)
+      for i, coord in enumerate(preview_connection):
+        x,y,z = coord
+        polyline.points[i].co = (x,y,z,1)
+
+      curve_object = bpy.data.objects.new(PREVIEW_PIPE_NAME, curve_data)
+      bpy.context.collection.objects.link(curve_object)
+
+      curve_object.data.bevel_depth = bpy.context.scene.ui_property.preview_pipe_thickness
+      curve_object.data.bevel_resolution = 2
+
+
+
+
+class MESH_OT_delete_preview_connection(bpy.types.Operator):
+  bl_idname = "mesh.delete_preview_connection"
+  bl_label = "Delete Preview Connection"
+
+  def execute(self, context):
+    for obj in bpy.context.scene.objects:
+      obj_name = obj.name
+      if PREVIEW_PIPE_NAME in obj_name:
+        bpy.data.objects.remove(obj)
+
+    bpy.context.scene.ui_property.preview_is_shown = False
+    return {'FINISHED'}
+
+
+
+
 
 
 
@@ -480,6 +786,7 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
 
 
 FREE_END_STL = "/Users/lhwang/Desktop/free_end_pointer.stl"
+DEFAULT_TIP_STL = "/Users/lhwang/Desktop/pipe_tip.stl"
 
 
 class GatePropertyGroup(bpy.types.PropertyGroup):
@@ -506,7 +813,8 @@ class UIPropertyGroup(bpy.types.PropertyGroup):
   fake_is_free_end: bpy.props.BoolProperty(default=False)
   fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=FREE_END_STL)
   confirm_make_assembly: bpy.props.BoolProperty(default=False)
-
+  preview_pipe_thickness: bpy.props.FloatProperty(default=.5, min=0, soft_max=1)
+  preview_is_shown: bpy.props.BoolProperty(default=False)
 
 class PipePropertyGroup(bpy.types.PropertyGroup):
   pipe_inner_radius: bpy.props.FloatProperty(
@@ -531,6 +839,31 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
   )
 
   show_pipe_preview: bpy.props.BoolProperty(default = False)
+
+  add_stage: bpy.props.BoolProperty(default = False)
+
+  stage_height: bpy.props.FloatProperty(
+    default = .5,
+    min = 0,
+    soft_max = 5
+  )
+  stage_rim_size: bpy.props.FloatProperty(
+    default = .5,
+    min = 0,
+    soft_max = 3
+  )
+
+  add_custom_tip: bpy.props.BoolProperty(default = False)
+
+  tip_offset: bpy.props.FloatProperty(
+    default = .1,
+    min = 0,
+    soft_max = 1
+  )
+  tip_stl_path: bpy.props.StringProperty(
+    subtype = 'FILE_PATH',
+    default = DEFAULT_TIP_STL
+  )
 
 
 
@@ -584,22 +917,6 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
       select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path")
     layout.operator("mesh.add_gate_object")
 
-
-
-
-class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
-  bl_space_type = 'VIEW_3D'
-  bl_region_type = 'UI'
-  bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Add Logic Gate"
-  bl_options = {'DEFAULT_CLOSED'}
-
-  # connection_dict = {"hi":"hello"}
-
-  def draw(self, context):
-    layout = self.layout
-    layout.operator("mesh.add_gate_connection")
-
     transform_box = layout.box()
 
     obj = bpy.context.active_object
@@ -616,6 +933,24 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
         rotation_row.prop(obj, "rotation_euler")
         scale_row = transform_box.row()
         scale_row.prop(obj, "scale")
+
+
+
+
+
+class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
+  bl_space_type = 'VIEW_3D'
+  bl_region_type = 'UI'
+  bl_category = ADDON_PANNEL_LABEL
+  bl_label = "Add Logic Gate"
+  bl_options = {'DEFAULT_CLOSED'}
+
+  # connection_dict = {"hi":"hello"}
+
+  def draw(self, context):
+    layout = self.layout
+    layout.operator("mesh.add_gate_connection")
+
 
 
     # draw title
@@ -742,17 +1077,28 @@ class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
   def draw(self, context):
     layout = self.layout
     layout_row = layout.row()
-    # box = layout_row.box()
     pipe_dimention_col = layout_row.column()
-    # box = layout_row.box()
-    other_col = layout_row.column()
+    stage_col = layout_row.column()
+    tip_col = layout_row.column()
 
     pipe_prop = bpy.context.scene.pipe_property
     pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius")
     pipe_dimention_col.prop(pipe_prop, "pipe_thickness")
+    pipe_dimention_col.prop(pipe_prop, "unit_dimention")
 
-    other_col.prop(pipe_prop, "tip_length")
-    other_col.prop(pipe_prop, "unit_dimention")
+    stage_col.prop(pipe_prop, "add_stage")
+    add_stage = getattr(pipe_prop, "add_stage")
+    if add_stage:
+      stage_col.prop(pipe_prop, "stage_height")
+      stage_col.prop(pipe_prop, "stage_rim_size")
+
+    # tip_col.prop(pipe_prop, "tip_length")
+    tip_col.prop(pipe_prop, "add_custom_tip")
+    add_custom_tip = getattr(pipe_prop, "add_custom_tip")
+    if add_custom_tip:
+      tip_col.prop(pipe_prop, "tip_offset")
+      tip_col.prop(pipe_prop, "tip_stl_path")
+
 
     layout.operator("mesh.make_preview_pipe")
 
@@ -773,12 +1119,21 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
 
 
   def draw(self, context):
+    ui_prop = bpy.context.scene.ui_property
     layout = self.layout
     row = layout.row()
-    row.prop(bpy.context.scene.ui_property, "confirm_make_assembly")
-    confirm = getattr(bpy.context.scene.ui_property, 'confirm_make_assembly')
+    row.prop(ui_prop, "confirm_make_assembly")
+    confirm = getattr(ui_prop, 'confirm_make_assembly')
     if confirm:
       row.operator("mesh.make_assembly")
+    else:
+      preview_shown = ui_prop.preview_is_shown
+      if not preview_shown:
+        col = row.column()
+        col.operator("mesh.make_preview_connection")
+        col.prop(ui_prop, "preview_pipe_thickness")
+      else:
+        row.operator("mesh.delete_preview_connection")
 
 
 
@@ -801,8 +1156,11 @@ class_to_register = [
   MESH_OT_add_gate_connection,
   MESH_OT_choose_connection_port,
   MESH_OT_cancel_connection_port,
+  MESH_OT_check_connection_selection,
   MESH_OT_make_assembly,
   MESH_OT_make_preview_pipe,
+  MESH_OT_make_preview_connection,
+  MESH_OT_delete_preview_connection,
 
   GatePropertyGroup,
   ConnectionPropertyGroup,
