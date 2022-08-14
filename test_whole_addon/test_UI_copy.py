@@ -10,7 +10,8 @@ import os
 import bpy
 
 import test_whole_addon.gate_assembly as gate_assembly
-import test_whole_addon.import_gate as import_gate
+
+
 # bl_info = {
 #   "name": "test UI addon",
 #   "author": "Name",
@@ -28,10 +29,10 @@ import test_whole_addon.import_gate as import_gate
 
 
 MAX_NUM_OF_CONNECTIONS = 20
-MAX_NUM_OF_PORTS = 10
 
-
+############################################################################
 ################################  Operater  ################################
+############################################################################
 
 
 class MESH_OT_reset_my_addon(bpy.types.Operator):
@@ -231,6 +232,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
 
+    bpy.context.scene.ui_property.confirm_make_assembly = False
 
     return {'FINISHED'}
 
@@ -354,11 +356,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
           self.gate_list.append(record_unit)
           recorded_gate_list.append(gate_obj)
 
-            # imported_gate = self.assembly.add_gate(gate_name, stl_path)
-            # imported_gate.move_gate(gate_pos[0], gate_pos[1], gate_pos[2])
-            # imported_gate.rotate_gate(gate_rotation[0], gate_rotation[1], gate_rotation[2])
-            # imported_gate.scale_gate(gate_scale[0], gate_scale[1], gate_scale[2])
-
     print(self.gate_list)
 
 
@@ -425,10 +422,60 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
 
+class MESH_OT_make_preview_pipe(bpy.types.Operator):
+  bl_idname = "mesh.make_preview_pipe"
+  bl_label = "Make Preview Pipe"
+
+  def execute(self, context):
+
+
+  # def make_preview_pipe(self):
+    pipe_prop = bpy.context.scene.pipe_property
+    inner_radius = pipe_prop.pipe_inner_radius
+    thickness = pipe_prop.pipe_thickness
+    unit_dim = pipe_prop.unit_dimention
+    fillet_dim = .7 * (inner_radius + thickness)
+
+    dot_list = [
+      (0, 2*unit_dim, 0),
+      (0, fillet_dim, 0),
+      (fillet_dim, 0, 0),
+      (unit_dim-fillet_dim, 0, 0),
+      (unit_dim, 0, fillet_dim),
+      (unit_dim, 0, 2*unit_dim),
+    ]
+    pipe_name = "Test Tube"
+
+    try:
+      bpy.data.objects.remove(bpy.data.objects[pipe_name])
+    except KeyError:
+      pass
+
+    curve_data = bpy.data.curves.new(pipe_name, type = "CURVE")
+    curve_data.dimensions = "3D"
+
+    polyline = curve_data.splines.new("POLY")
+    polyline.points.add(len(dot_list)-1)
+    for i, coord in enumerate(dot_list):
+      x,y,z = coord
+      polyline.points[i].co = (x,y,z,1)
+
+    curve_object = bpy.data.objects.new(pipe_name, curve_data)
+    bpy.context.collection.objects.link(curve_object)
+
+    curve_object.data.bevel_depth = inner_radius + thickness
+    curve_object.data.bevel_resolution = 2
+    solidify_modifier_name = "Solidify"
+    curve_object.modifiers.new(solidify_modifier_name, "SOLIDIFY").thickness = thickness
+
+    return {'FINISHED'}
 
 
 
+############################################################################
 ################################  Properties ###############################
+############################################################################
+
 
 
 
@@ -458,10 +505,42 @@ class ConnectionPropertyGroup(bpy.types.PropertyGroup):
 class UIPropertyGroup(bpy.types.PropertyGroup):
   fake_is_free_end: bpy.props.BoolProperty(default=False)
   fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=FREE_END_STL)
+  confirm_make_assembly: bpy.props.BoolProperty(default=False)
+
+
+class PipePropertyGroup(bpy.types.PropertyGroup):
+  pipe_inner_radius: bpy.props.FloatProperty(
+    default = .2,
+    min = 0,
+    soft_max = 1
+  )
+  pipe_thickness: bpy.props.FloatProperty(
+    default = .15,
+    min = 0.01,
+    soft_max = 1
+  )
+  tip_length: bpy.props.FloatProperty(
+    default = 1,
+    min = 0,
+    soft_max = 2
+  )
+  unit_dimention: bpy.props.IntProperty(
+    default = 1,
+    min = 1,
+    soft_max = 5
+  )
+
+  show_pipe_preview: bpy.props.BoolProperty(default = False)
 
 
 
+
+############################################################################
 #################################  Pannel  ####################################
+############################################################################
+
+
+
 
 ADDON_PANNEL_LABEL = "MyAddon"
 
@@ -520,6 +599,24 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
   def draw(self, context):
     layout = self.layout
     layout.operator("mesh.add_gate_connection")
+
+    transform_box = layout.box()
+
+    obj = bpy.context.active_object
+    if not obj:
+      label_row = transform_box.row()
+      label_row.alignment = 'CENTER'
+      label_row.label(text="- no active object -")
+    else:
+      location_row = transform_box.row()
+      location_row.prop(obj, "location")
+      # normal gate have rotate and scale
+      if not obj.gate_property.is_free_end:
+        rotation_row = transform_box.row()
+        rotation_row.prop(obj, "rotation_euler")
+        scale_row = transform_box.row()
+        scale_row.prop(obj, "scale")
+
 
     # draw title
     connection_box = layout.box()
@@ -635,6 +732,36 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
 
 
 
+class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
+  bl_space_type = 'VIEW_3D'
+  bl_region_type = 'UI'
+  bl_category = ADDON_PANNEL_LABEL
+  bl_label = "Pipe Properties"
+  bl_options = {'DEFAULT_CLOSED'}
+
+  def draw(self, context):
+    layout = self.layout
+    layout_row = layout.row()
+    # box = layout_row.box()
+    pipe_dimention_col = layout_row.column()
+    # box = layout_row.box()
+    other_col = layout_row.column()
+
+    pipe_prop = bpy.context.scene.pipe_property
+    pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius")
+    pipe_dimention_col.prop(pipe_prop, "pipe_thickness")
+
+    other_col.prop(pipe_prop, "tip_length")
+    other_col.prop(pipe_prop, "unit_dimention")
+
+    layout.operator("mesh.make_preview_pipe")
+
+
+
+
+
+
+
 
 
 class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
@@ -647,7 +774,11 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
 
   def draw(self, context):
     layout = self.layout
-    layout.operator("mesh.make_assembly")
+    row = layout.row()
+    row.prop(bpy.context.scene.ui_property, "confirm_make_assembly")
+    confirm = getattr(bpy.context.scene.ui_property, 'confirm_make_assembly')
+    if confirm:
+      row.operator("mesh.make_assembly")
 
 
 
@@ -657,7 +788,10 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
 
 
 
+############################################################################
 ###############################  Regester  #################################
+############################################################################
+
 
 
 class_to_register = [
@@ -668,14 +802,17 @@ class_to_register = [
   MESH_OT_choose_connection_port,
   MESH_OT_cancel_connection_port,
   MESH_OT_make_assembly,
+  MESH_OT_make_preview_pipe,
 
   GatePropertyGroup,
   ConnectionPropertyGroup,
   UIPropertyGroup,
+  PipePropertyGroup,
 
   VIEW3D_PT_addon_main_panel,
   VIEW3D_PT_add_gate_panel,
   VIEW3D_PT_add_connection_panel,
+  VIEW3D_PT_pipe_property_pannel,
   VIEW3D_PT_make_assembly_panel,
 
 ]
@@ -686,6 +823,7 @@ def register_properties():
   bpy.types.Object.gate_property = bpy.props.PointerProperty(type=GatePropertyGroup)
   bpy.types.Scene.connection_property = bpy.props.PointerProperty(type=ConnectionPropertyGroup)
   bpy.types.Scene.ui_property = bpy.props.PointerProperty(type=UIPropertyGroup)
+  bpy.types.Scene.pipe_property = bpy.props.PointerProperty(type=PipePropertyGroup)
   print("Properties Registered")
 
 
@@ -694,6 +832,7 @@ def unregister_properties():
   del bpy.types.Object.gate_property
   del bpy.types.Scene.connection_property
   del bpy.types.Scene.ui_property
+  del bpy.types.Scene.pipe_property
   print("Properties UnRegistered")
 
 
