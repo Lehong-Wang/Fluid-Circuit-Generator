@@ -56,5 +56,15 @@ Existing Error:
 
   one port have two snap
 
+  Solved
+
+
+Existing Error:
+  If wield bug happen, just reset add-on
+
+
+Existing Error:
+  In calculate propagation delay
+  Choose free_end after choosing a port didn't delete port
 
 
