@@ -240,10 +240,13 @@ class MESH_OT_cancel_connection_port(bpy.types.Operator):
 class MESH_OT_make_assembly(bpy.types.Operator):
   """
   The magic button that does everything
-  WARNING: Pressing this button is irreversable (press Ctrl+Z works actrually)
+  WARNING: Pressing this button is irreversable
     It will delete all your choices and make the logic gates invalid
     But it did give you the final product
     Only Press this after you checked everything is correct
+    Ctrl + Z might appear to work, but it would actually mess up internal data and cause wield errors
+    Please don't use Ctrl Z to redo
+    If you did, please press Reset Addon Button to avoid nasty errors
   This button is the only connection between UI and backend
   It calls functions from gate_assembly to build the circuit
   """
@@ -1093,6 +1096,10 @@ class MESH_OT_cancel_propergation_port(bpy.types.Operator):
 
 
 class MESH_OT_calculate_propegation_delay(bpy.types.Operator):
+  """
+  Calculate propegation delay between two given ports
+  This method also calls the assembly class
+  """
   bl_idname = "mesh.calculate_propegation_delay"
   bl_label = "Calculate Propegation Delay"
 
@@ -1136,6 +1143,9 @@ class MESH_OT_calculate_propegation_delay(bpy.types.Operator):
 
 
 class MESH_OT_change_group_visibility(bpy.types.Operator):
+  """
+  Change the visibility of a given group name
+  """
   bl_idname = "mesh.change_group_visibility"
   bl_label = "Change Group Visibility"
 
@@ -1594,6 +1604,10 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
 
 
 class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
+  """
+  Calculate Propergation Delay Panel
+  Choose ports and calculate the propergation delay between them
+  """
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
@@ -1631,22 +1645,21 @@ class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
 
     button_row = layout.row()
     button_row.operator("mesh.calculate_propegation_delay")
-    # delay = bpy.types.MESH_OT_calculate_propegation_delay.propegation_delay
     delay = getattr(ui_prop, "propegation_delay")
     button_row.label(text=f"Propegation Delay:          {round(delay,4)}")
-    # delay_col = button_row.column()
-    # delay_col.enabled = False
-    # delay_col.prop(ui_prop, "propegation_delay", emboss=False)
-    # button_row.label(text="Values: {}".format(getattr(ui_prop, "propegation_delay")))
-
 
 
 
 
   def add_port_choices(self, is_start, gate_obj, row):
+    """Helper Function"""
     ui_prop = bpy.context.scene.ui_property
 
     if gate_obj:
+      # if free end, don't show port choices
+      if gate_obj.gate_property.is_free_end:
+        return
+      # if port is not selected, show choices, else show cancel
       is_selected = False
       if is_start:
         is_selected = bool(ui_prop.start_port)
@@ -1684,6 +1697,7 @@ class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
 
 
   def get_port_list(self, gate_obj):
+    """Helper Function"""
     json_path = gate_obj.gate_property.json_file_path
     with open(json_path, 'r') as f:
       json_data = json.load(f)
@@ -1695,6 +1709,11 @@ class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
 
 
 class VIEW3D_PT_set_group_visibility_panel(bpy.types.Panel):
+  """
+  Set Group Visibility Panel
+  Choose which group of object you want to turn invisible
+  Useful when exporting stl files
+  """
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
@@ -1712,6 +1731,7 @@ class VIEW3D_PT_set_group_visibility_panel(bpy.types.Panel):
     self.add_show_hide_button("tip", row)
 
   def add_show_hide_button(self, group_name, row):
+    """Helper Function"""
     connect_prop = bpy.context.scene.connection_property
     ui_prop = bpy.context.scene.ui_property
 
@@ -1725,6 +1745,7 @@ class VIEW3D_PT_set_group_visibility_panel(bpy.types.Panel):
     # print(f"Button {group_name.capitalize()} {self.get_show_hide_text(visibility_status)} Drawn")
 
   def get_show_hide_text(self, visibility_status):
+    """Helper Function"""
     if visibility_status:
       return "Hide"
     return "Show"
