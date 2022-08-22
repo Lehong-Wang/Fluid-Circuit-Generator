@@ -18,11 +18,14 @@ import bpy
 import fluid_circuit_generator.gate_assembly as gate_assembly
 
 
+
+
+
 bl_info = {
   "name": "test UI addon",
   "author": "Name",
   "version": (1, 0),
-  "blender": (2, 80, 0),
+  "blender": (3, 2, 0),
   "location": "SpaceBar Search -> Add-on Preferences Example",
   "description": "test UI addon",
   "warning": "",
@@ -71,6 +74,15 @@ class MESH_OT_reset_my_addon(bpy.types.Operator):
     bpy.context.scene.property_unset("pipe_property")
     bpy.context.scene.property_unset("ui_property")
 
+    # clear privious object list
+    bpy.context.scene.connection_property.gate_obj_list.clear()
+    bpy.context.scene.connection_property.pipe_obj_list.clear()
+    bpy.context.scene.connection_property.free_end_obj_list.clear()
+    bpy.context.scene.connection_property.stage_obj_list.clear()
+    bpy.context.scene.connection_property.tip_obj_list.clear()
+
+    # clear error message list
+    bpy.context.scene.ui_property.error_message_list.clear()
 
     print("Addon Reset")
     return {'FINISHED'}
@@ -1176,9 +1188,15 @@ class MESH_OT_change_group_visibility(bpy.types.Operator):
 
 
 
+def get_addon_dir():
+  script_file = os.path.realpath(__file__)
+  directory = os.path.dirname(script_file)
+  print(directory)
+  return str(directory)
 
-FREE_END_STL = "/Users/lhwang/Desktop/free_end_pointer.stl"
-DEFAULT_TIP_STL = "/Users/lhwang/Desktop/pipe_tip.stl"
+GATE_LIBRARY_PATH = get_addon_dir() + "/Gate_Library/"
+FREE_END_STL = GATE_LIBRARY_PATH + "free_end_pointer.stl"
+DEFAULT_TIP_STL = GATE_LIBRARY_PATH + "pipe_tip.stl"
 
 
 class GatePropertyGroup(bpy.types.PropertyGroup):
@@ -1225,7 +1243,7 @@ class UIPropertyGroup(bpy.types.PropertyGroup):
   """
   # import gate
   fake_is_free_end: bpy.props.BoolProperty(default=False)
-  fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH')
+  fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=GATE_LIBRARY_PATH)
   # make assembly and preview
   confirm_make_assembly: bpy.props.BoolProperty(default=False)
   preview_pipe_thickness: bpy.props.FloatProperty(default=.5, min=0, soft_max=1)
@@ -1331,6 +1349,9 @@ class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
     layout = self.layout
     layout.operator("mesh.primitive_monkey_add")
     layout.operator("mesh.reset_my_addon", text="Reset Addon")
+    # script_file = os.path.realpath(__file__)
+    # directory = os.path.dirname(script_file)
+    # print(directory)
 
 
 
