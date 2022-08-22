@@ -37,6 +37,8 @@ class PipeSystem:
 
     self.grid = p.Grid(self.grid_dimention)
 
+    # [(start_coord, end_coord)]
+    self.to_connect_list = []
     # {(start_coord, end_coord) : [path_coord_list]}
     self.connection_dict = {}
     # {junction_coord : [connection_coords]}
@@ -115,9 +117,25 @@ class PipeSystem:
   def snap_to_grid(self, coord, direction_sign_x, direction_sign_y):
     """Find the corrisponding ground coordinate for a real world coordinate"""
     dim = self.unit_dimention
+    near_list = []
     # if already on grid, not change
-    dir_x = bool(coord[0]%dim)*direction_sign_x
-    dir_y = bool(coord[1]%dim)*direction_sign_y
+    x_on_grid = bool(coord[0]%dim)
+    y_on_grid = bool(coord[1]%dim)
+
+    for connection in self.to_connect_list:
+      for other_coord in connection:
+        if self.is_near(coord, other_coord):
+          near_list.append(other_coord)
+
+    weigh_x = 0.01 * direction_sign_x
+    weigh_y = 0.01 * direction_sign_y
+
+    for near_coord in near_list:
+      weigh_x += 1 / (coord[0] - near_coord[0] + 0.01)
+      weigh_y += 1 / (coord[1] - near_coord[1] + 0.01)
+
+    dir_x = (x_on_grid * weigh_x) > 0
+    dir_y = (y_on_grid * weigh_y) > 0
 
     grid_coord = (int(coord[0]//dim + dir_x), int(coord[1]//dim + dir_y), int(coord[2]//dim))
     # self.print_port_dict()
@@ -142,6 +160,16 @@ class PipeSystem:
     print(f"Snap: {coord}-{grid_coord}-{real_grid_coord}")
     return grid_coord
 
+
+  def is_near(self, this_coord, that_coord):
+    """Helper function"""
+    near_distance = 2 * self.unit_dimention
+    not_same = this_coord != that_coord
+    x_near = abs(this_coord[0] - that_coord[0]) <= near_distance
+    y_near = abs(this_coord[1] - that_coord[1]) <= near_distance
+    z_near = abs(this_coord[2] - that_coord[2]) <= near_distance
+    near = (x_near and z_near) or (y_near and z_near)
+    return not_same and near
 
   # check both grid.visited and port_dict for if is used
   def grid_coord_in_use(self, grid_coord):
@@ -341,8 +369,11 @@ class PipeSystem:
 
     for key,value in self.connection_dict.items():
       # path_name = f"Path_{key[0]}-{key[1]}"
+
       start_coord_rounded = tuple(map(lambda x: round(x,2), key[0]))
       end_coord_rounded = tuple(map(lambda x: round(x,2), key[1]))
+      # start_coord_rounded = key[0]
+      # end_coord_rounded = key[1]
       path_name = f"Path_{start_coord_rounded}-{end_coord_rounded}"
       self.pipe_object_dict[(key[0], key[1])] = [(value[1], value[-2]), self.make_pipe(path_name, value)]
 
@@ -388,8 +419,8 @@ class PipeSystem:
         dot_product = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
         cos = dot_product / (l_v1 * l_v2)
 
-        # angle > 120
-        if cos < -.5:
+        # angle > 120 or too close together
+        if cos < -.5 or min(l_v1, l_v2) < 2 * fillet_size:
           new_coord_list.append(this_coord)
         else:
           d1 = tuple(map(lambda a: a/l_v1*fillet_size, v1))
@@ -557,6 +588,12 @@ class PipeSystem:
       for connection in value:
         print(f"Dest:{connection[0]}, Path:{connection[1]}")
 
+  def print_to_connect_list(self):
+    """Helper function"""
+    print("\nTo Connect list:")
+    for item in self.to_connect_list:
+      print(item)
+
   def register_error_message(self, error_message):
     """Helper Function"""
     self.error_message_list.append(error_message)
@@ -680,10 +717,10 @@ if __name__ == '__main__':
 #   # print(pipe_system.connection_dict)
 #   # print("Port Dictionary:")
 #   # print(pipe_system.port_dict)
-#   pipe_system.print_connection_dict()
-#   pipe_system.print_port_dict()
-#   pipe_system.print_junction_dict()
-#   pipe_system.print_connection_graph()
+  pipe_system.print_connection_dict()
+  pipe_system.print_port_dict()
+  pipe_system.print_junction_dict()
+  pipe_system.print_connection_graph()
 
 
 #   path1 = pipe_system.get_path_from_graph((15.5,10,12.3), (6,11.5,4))
@@ -697,17 +734,3 @@ if __name__ == '__main__':
 #   pipe_system.pipe_dimention = (.5,.01)
 #   pipe_system.make_pipe("p1", path1)
 #   pipe_system.make_pipe("p2", path2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -134,6 +134,7 @@ class LogicGate:
     #   self.default_dimention = tuple(self.gate_obj.dimensions)
 
     # apply move, scale, rotation
+    self.gate_obj.name = self.name
     self.gate_obj.rotation_mode = "XYZ"
     self.gate_obj.location = self.obj_placement_data[0]
     self.gate_obj.rotation_euler = self.obj_placement_data[1]
@@ -171,7 +172,8 @@ class LogicGate:
       rotated_pos = tuple(vector_after)
 
       moved_pos = tuple(map(lambda a,b: a+b, rotated_pos, self.obj_placement_data[0]))
-      self.port_abs_pos[name] = moved_pos
+      rounded_pos = tuple(map(lambda a: round(a,2), moved_pos))
+      self.port_abs_pos[name] = rounded_pos
 
     print(f"Absolute nuzzle Pos: {self.port_abs_pos.items()}")
     print("Absolute Nozzle Pos recalculated")

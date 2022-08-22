@@ -54,5 +54,11 @@ if assembly.prepare_for_connection(pipe_dimention = (.25,.1), unit_dimention = 1
 
   assembly.add_connection(("gate_3", "Port_6"), ("FREE_END", "Output"))
 
+  assembly.make_connections()
+
   assembly.update_connection_dict()
   assembly.add_stage()
+
+  # assembly.print_to_connect_list()
+
+

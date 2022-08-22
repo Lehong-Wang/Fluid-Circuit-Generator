@@ -5,6 +5,8 @@ Keeps track of gates, connections, and check for duplicates
 """
 
 
+import json
+import os
 import sys
 import importlib.util
 import bpy
@@ -29,6 +31,8 @@ class GateAssembly:
 
   stage_height = 1
   stage_margin = .5
+  tip_offset = 0.1
+
 
   def __init__(self):
 
@@ -38,6 +42,8 @@ class GateAssembly:
     # {port_name : coord}
     # gate_name for free end port is "FREE_END"
     self.free_end_port_dict = {}
+    # [(start_coord, end_coord)]
+    self.to_connect_list = []
     # {start : [(end, propagation_delay) ] }
     self.connection_dict = {}
     # list of all connection grounps (ports that are interconnected)
@@ -67,13 +73,16 @@ class GateAssembly:
     return port_coord
 
 
-  def prepare_for_connection(self, pipe_dimention=None, unit_dimention=1, tip_length=None):
+  def prepare_for_connection(self, pipe_dimention=None, unit_dimention=1, tip_length=None, stage_height=1, stage_margin=.5, tip_offset=.1):
     """
     Set grid to fit gate ports
     Check if ports are in valid position
     Call this function before making connections
     Don't make connection if this return False
     """
+    self.stage_height = stage_height
+    self.stage_margin = stage_margin
+    self.tip_offset = tip_offset
 
     max_real_dimention = (0,0,0)
     is_port_valid = True  # within valid dimensions
@@ -133,7 +142,8 @@ class GateAssembly:
     start_port = self.get_gate_port_coord(gate_start, port_start)
     end_port = self.get_gate_port_coord(gate_end, port_end)
 
-    self.pipe_system.connect_two_port(start_port, end_port)
+    self.to_connect_list.append((start_port, end_port))
+    # self.pipe_system.connect_two_port(start_port, end_port)
 
 
   def get_gate_port_coord(self, gate_name, port_name):
@@ -146,6 +156,13 @@ class GateAssembly:
     else:
       print(f"Error: Gate name: {gate_name} doesn't exist in logic_gate_dict: {self.logic_gate_dict.keys()}")
       return None
+
+
+  def make_connections(self):
+    self.pipe_system.to_connect_list = self.to_connect_list[:]
+    for connection in self.to_connect_list:
+      self.pipe_system.connect_two_port(connection[0], connection[1])
+
 
 
 
@@ -186,6 +203,7 @@ class GateAssembly:
   def round_coord(self, coord):
     """Helper function"""
     return tuple(map(lambda x: round(x,2), coord))
+    # return coord
 
 
 
@@ -264,6 +282,7 @@ class GateAssembly:
     Only call after update_connection_dict()
     Note: this process will significantly add to program run time
     """
+    offset = self.tip_offset
 
     for gate in self.logic_gate_dict.values():
       # calculate stage dimentions
@@ -272,10 +291,11 @@ class GateAssembly:
       stage_margin = 2 * (self.stage_margin + self.pipe_system.pipe_dimention[0] + self.pipe_system.pipe_dimention[1])
       stage_x_dim = gate_max_pos[0] - gate_min_pos[0] + stage_margin
       stage_y_dim = gate_max_pos[1] - gate_min_pos[1] + stage_margin
-      stage_z_dim = self.stage_height
+      stage_z_dim = min(self.stage_height, gate_min_pos[2]-offset)   # stage lower bounded by xy plane
+
       stage_x_pos = (gate_max_pos[0] + gate_min_pos[0])/2
       stage_y_pos = (gate_max_pos[1] + gate_min_pos[1])/2
-      stage_z_pos = gate_min_pos[2] - self.pipe_system.tip_length
+      stage_z_pos = gate_min_pos[2] - offset - stage_z_dim/2
 
       bpy.ops.mesh.primitive_cube_add()
       stage_object = bpy.context.active_object
@@ -362,6 +382,47 @@ class GateAssembly:
 
 
 
+  def add_tip(self, stl_path):
+
+    # handles tip stl
+    abs_path = bpy.path.abspath(stl_path)
+    root,ext = os.path.splitext(abs_path)
+
+    if not os.path.exists(abs_path):
+      self.register_error_message(f"File Not Exist at {abs_path}")
+      return
+
+    if ext != ".stl":
+      self.register_error_message(f"File is Not an STL file, file: {abs_path}")
+      return
+
+    json_path = root + ".json"
+    if not os.path.exists(json_path):
+      self.register_error_message(f"Corresponding Json file not found for file {abs_path}")
+      return
+
+    with open(json_path, 'r') as f:
+      json_data = json.load(f)
+      obj_base_name = json_data["Name"]
+      obj_dim = list(json_data["Object Dimension"])
+      pipe_dim = list(json_data["Pipe Dimension"])
+      tip_radius = pipe_dim[0] + pipe_dim[1]
+
+    target_radius = self.pipe_system.pipe_dimention[0] + self.pipe_system.pipe_dimention[1]
+    target_scale = target_radius / tip_radius
+    offset = self.tip_offset
+    # add tip to each port
+    for connection in self.to_connect_list:
+      for coord in connection:
+        bpy.ops.import_mesh.stl(filepath = abs_path)
+        tip_obj = bpy.context.active_object
+        tip_obj.name = f"{obj_base_name}-{coord}"
+        tip_obj.scale = (target_scale, target_scale, 1)
+        tip_obj.location = (coord[0], coord[1], coord[2]-offset)
+
+
+
+
 
 
 
@@ -403,6 +464,12 @@ class GateAssembly:
     print("\nConnection Group:")
     for i,group in enumerate(self.connection_group_list):
       print(f"\tGroup {i}: {group}")
+
+  def print_to_connect_list(self):
+    """Helper function"""
+    print("\nTo Connect list:")
+    for item in self.to_connect_list:
+      print(item)
 
   def register_error_message(self, error_message):
     """Helper Function"""
@@ -459,7 +526,7 @@ if __name__ == '__main__':
   a.add_free_end_port("f1", (10,40,10))
   a.add_free_end_port("f2", (45,10,10))
 
-  if a.prepare_for_connection(pipe_dimention = (.5,.3), unit_dimention = 3, tip_length = 4):
+  if a.prepare_for_connection(pipe_dimention = (.5,.3), unit_dimention = 3, tip_length = 4, stage_height = 20, stage_margin = 2, tip_offset = 3):
 
     a.add_connection((gate1.name, "Sphere"), ("g2", "Cube"))
     a.add_connection((gate1.name, "Cube"), ("g2", "Cube"))
@@ -470,9 +537,14 @@ if __name__ == '__main__':
     a.add_connection(("g2", "Cone"), ("FREE_END", "f1"))
     a.add_connection(("FREE_END", "f2"), ("FREE_END", "f1"))
 
+    a.make_connections()
+
     # print(a.connection_group_list)
 
     a.update_connection_dict()
+
+    a.add_stage()
+    a.add_tip("/Users/lhwang/Desktop/pipe_tip.stl")
 
     a.get_propagation_delay(("g2", "IcoSphere"), ("g1", "Cube"))
     a.get_propagation_delay(("g2", "IcoSphere"), ("g2", "Cube"))
