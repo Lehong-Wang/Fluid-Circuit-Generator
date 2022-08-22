@@ -53,6 +53,7 @@ Existing Error:
   problem when ports are too close together
   snap to grid not recognize each other
   zig-zag pipe when snap to grid (maybe merge together)
+    Fix when making fillet in pipe system
 
   one port have two snap
 
@@ -66,5 +67,9 @@ Existing Error:
 Existing Error:
   In calculate propagation delay
   Choose free_end after choosing a port didn't delete port
+
+Existing Error:
+  Didn't check for negative position
+
 
 

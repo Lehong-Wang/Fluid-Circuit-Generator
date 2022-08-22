@@ -734,17 +734,3 @@ if __name__ == '__main__':
 #   pipe_system.pipe_dimention = (.5,.01)
 #   pipe_system.make_pipe("p1", path1)
 #   pipe_system.make_pipe("p2", path2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-

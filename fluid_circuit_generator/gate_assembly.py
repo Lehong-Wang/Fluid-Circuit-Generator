@@ -570,15 +570,3 @@ if __name__ == '__main__':
     a.print_connection_group()
     print(a.get_warning_message())
     print(a.get_error_message())
-
-
-
-
-
-
-
-
-
-
-
-
