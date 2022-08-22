@@ -18,14 +18,11 @@ import bpy
 import fluid_circuit_generator.gate_assembly as gate_assembly
 
 
-
-
-
 bl_info = {
   "name": "test UI addon",
   "author": "Name",
   "version": (1, 0),
-  "blender": (3, 2, 0),
+  "blender": (2, 80, 0),
   "location": "SpaceBar Search -> Add-on Preferences Example",
   "description": "test UI addon",
   "warning": "",
@@ -74,15 +71,6 @@ class MESH_OT_reset_my_addon(bpy.types.Operator):
     bpy.context.scene.property_unset("pipe_property")
     bpy.context.scene.property_unset("ui_property")
 
-    # clear privious object list
-    bpy.context.scene.connection_property.gate_obj_list.clear()
-    bpy.context.scene.connection_property.pipe_obj_list.clear()
-    bpy.context.scene.connection_property.free_end_obj_list.clear()
-    bpy.context.scene.connection_property.stage_obj_list.clear()
-    bpy.context.scene.connection_property.tip_obj_list.clear()
-
-    # clear error message list
-    bpy.context.scene.ui_property.error_message_list.clear()
 
     print("Addon Reset")
     return {'FINISHED'}
@@ -96,8 +84,6 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
   """
   bl_idname = "mesh.add_gate_object"
   bl_label = "Add Logic Gate Object"
-
-  # obj_count = 0
 
   def execute(self, context):
     # get fake props
@@ -114,7 +100,7 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
       self.report(
         {"ERROR"},
         f"File is Not an STL file, file: {abs_path}"
-      )
+        )
       return {"CANCELLED"}
 
     try:
@@ -131,7 +117,6 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
     imported_object.gate_property.is_free_end = is_free_end
 
     if is_free_end:
-      # self.obj_count += 1
       return {'FINISHED'}
     # check json file
     json_path = root + ".json"
@@ -143,7 +128,6 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
       )
       return {"CANCELLED"}
 
-    # self.obj_count += 1
     return {"FINISHED"}
 
 
@@ -256,9 +240,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     It will delete all your choices and make the logic gates invalid
     But it did give you the final product
     Only Press this after you checked everything is correct
-    Ctrl + Z might appear to work, but it would actually mess up internal data and cause wield errors
-    Please don't use Ctrl Z to redo
-    If you did, please press Reset Addon Button to avoid nasty errors
   This button is the only connection between UI and backend
   It calls functions from gate_assembly to build the circuit
   """
@@ -273,19 +254,13 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
   def execute(self, context):
 
-
     # check valid input
     try:
       bpy.ops.mesh.check_connection_selection()
     except RuntimeError:
-      error_list = bpy.context.scene.ui_property.error_message_list
-      for message in error_list:
-        self.report({"ERROR"}, message)
-      error_list.clear()
       return {'CANCELLED'}
 
-    if not self.get_all_gates():
-      return {'CANCELLED'}
+    self.get_all_gates()
     self.get_all_connections()
 
     # remove connection selection
@@ -293,45 +268,15 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
     self.assembly.reset_blender()
 
-    gate_obj_list = []
-    pipe_obj_list = []
-    free_end_obj_list = []
-    stage_obj_list = []
-    tip_obj_list = []
-
     print("\n Positioning all gates")
-    gate_obj_list = self.place_all_gates()
+    self.place_all_gates()
     self.add_all_connections()
 
-    if bpy.context.scene.pipe_property.add_stage:
-      stage_obj_list = self.assembly.add_stage()
-
-    if bpy.context.scene.pipe_property.add_custom_tip:
-      tip_stl = bpy.context.scene.pipe_property.tip_stl_path
-      tip_obj_list = self.assembly.add_tip(tip_stl)
-
-    free_end_obj_list = self.place_free_end_points()
-
-    for obj in bpy.data.objects:
-      if obj not in gate_obj_list\
-        and obj not in free_end_obj_list\
-          and obj not in stage_obj_list\
-            and obj not in tip_obj_list:
-              pipe_obj_list.append(obj)
-
-    # print(f"gate_obj_list: {gate_obj_list}")
-    # print(f"pipe_obj_list: {pipe_obj_list}")
-
-    connect_prop = bpy.context.scene.connection_property
-    connect_prop.gate_obj_list.extend(gate_obj_list)
-    connect_prop.pipe_obj_list.extend(pipe_obj_list)
-    connect_prop.free_end_obj_list.extend(free_end_obj_list)
-    connect_prop.stage_obj_list.extend(stage_obj_list)
-    connect_prop.tip_obj_list.extend(tip_obj_list)
+    # if bpy.context.scene.pipe_property.add_stage:
+    #   self.assembly.add_stage()
 
 
     bpy.context.scene.ui_property.confirm_make_assembly = False
-    bpy.context.scene.ui_property.assembly_is_made = True
 
     return {'FINISHED'}
 
@@ -362,13 +307,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
             print(f"Free end: {gate_obj}, pos: {free_end_pos}")
             record_unit = (True, free_end_name, free_end_pos)
 
-            if min(free_end_pos) < 0:
-              self.report(
-                {'ERROR'},
-                f"Free End: {gate_obj.name} is not in the first coordinate, location {free_end_pos}"
-              )
-              return False
-
           # logic gate
           else:
             stl_path = gate_obj.gate_property.stl_file_path
@@ -380,71 +318,11 @@ class MESH_OT_make_assembly(bpy.types.Operator):
             print(f"\tStl: {stl_path}")
             record_unit = (False, gate_name, stl_path, gate_pos, gate_rotation, gate_scale)
 
-            if not self.validate_gate_port_pos(gate_obj):
-              return False
           self.gate_list.append(record_unit)
           recorded_gate_list.append(gate_obj)
 
     print(self.gate_list)
-    return True
 
-
-
-  def validate_gate_port_pos(self, gate_obj):
-    gate_pos = list(gate_obj.location)
-    gate_rot = list(gate_obj.rotation_euler)
-    gate_rot_radians = list(map(radians, gate_rot))
-    gate_scl = list(gate_obj.scale)
-    placement_data = (gate_pos, gate_rot_radians, gate_scl)
-
-    json_file = gate_obj.gate_property.json_file_path
-    with open(json_file, 'r') as f:
-      json_data = json.load(f)
-      port_dict = json_data["Port Info"]
-      for port_name,port_pos in port_dict.items():
-        abs_pos = self.calculate_abs_pos(placement_data, port_pos)
-        if min(abs_pos) < 0:
-          self.report(
-            {'ERROR'},
-            f"Gate: {gate_obj.name}, Port: {port_name} is not in the first coordinate, location: {abs_pos}"
-          )
-          return False
-    return True
-
-
-  # apply transformations to relative port pos
-  def calculate_abs_pos(self, placement_data, port_pos):
-    """
-    Helper function to calculate the absolute port position
-    """
-
-    # Linear Algibra, Euler rotation
-    x,y,z = placement_data[1]
-    # print("\n\nX,Y,Z to rotate",x,y,z)
-    x_matrix = np.array([[1, 0, 0],\
-                          [0, cos(x), -sin(x)],\
-                          [0, sin(x), cos(x)]])
-
-    y_matrix = np.array([[cos(y), 0, sin(y)],\
-                          [0, 1, 0],\
-                          [-sin(y), 0, cos(y)]])
-
-    z_matrix = np.array([[cos(z), -sin(z), 0],\
-                          [sin(z), cos(z), 0],\
-                          [0, 0, 1]])
-
-    # scale -> ratate -> move
-    scaled_pos = list(map(lambda a,b: a*b, port_pos, placement_data[2]))
-
-    vector_before = np.array([scaled_pos[0], scaled_pos[1], scaled_pos[2]])
-    vector_after = np.dot(np.dot(z_matrix, y_matrix), np.dot(x_matrix, vector_before))
-    rotated_pos = list(vector_after)
-
-    moved_pos = list(map(lambda a,b: a+b, rotated_pos, placement_data[0]))
-    rounded_pos = list(map(lambda a: round(a,2), moved_pos))
-
-    print(f"Port Pos: {port_pos} -> {rounded_pos}")
-    return rounded_pos
 
 
 
@@ -481,8 +359,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     """
     Add Logic Gate and Free End
     """
-    gate_obj_list = []
-
     for gate_info in self.gate_list:
       is_free_end = gate_info[0]
 
@@ -494,13 +370,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
         imported_gate.move_gate(gate_info[3][0], gate_info[3][1], gate_info[3][2])
         imported_gate.rotate_gate(gate_info[4][0], gate_info[4][1], gate_info[4][2])
         imported_gate.scale_gate(gate_info[5][0], gate_info[5][1], gate_info[5][2])
-        imported_gate.gate_obj.gate_property.stl_file_path = gate_info[2]
-        root,ext = os.path.splitext(gate_info[2])
-        json_path = root + ".json"
-        imported_gate.gate_obj.gate_property.json_file_path = json_path
 
-        gate_obj_list.append(imported_gate.gate_obj)
-    return gate_obj_list
 
 
   def add_all_connections(self):
@@ -511,24 +381,14 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     inner_radius = pipe_prop.pipe_inner_radius
     thickness = pipe_prop.pipe_thickness
     unit_dim = pipe_prop.unit_dimention
-    stage_height = pipe_prop.stage_height
-    stage_margin = pipe_prop.stage_rim_size
-    tip_offset = pipe_prop.tip_offset
     # tip_len = pipe_prop.tip_length
     tip_len = unit_dim / 2
-    if self.assembly.prepare_for_connection(
-      pipe_dimention = (inner_radius,thickness),
-      unit_dimention = unit_dim,
-      tip_length = tip_len,
-      stage_height = stage_height,
-      stage_margin = stage_margin,
-      tip_offset = tip_offset):
+    if self.assembly.prepare_for_connection(pipe_dimention = (inner_radius,thickness), unit_dimention = unit_dim, tip_length = tip_len):
 
       for connection_unit in self.connection_list:
 
         self.assembly.add_connection(connection_unit[0], connection_unit[1])
 
-    self.assembly.make_connections()
     self.assembly.update_connection_dict()
 
     print(self.assembly.get_warning_message())
@@ -536,42 +396,17 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
 
-  def place_free_end_points(self):
-    free_end_obj_list = []
-    for gate_packet in self.gate_list:
-      is_free_end = gate_packet[0]
-      if is_free_end:
-        name = gate_packet[1]
-        pos = gate_packet[2]
-        rounded_pos = tuple(map(lambda x: round(x,2), pos))
-        bpy.ops.import_mesh.stl(filepath = FREE_END_STL)
-        obj = bpy.context.active_object
-        # if "free_end_pointer" in name:
-        #   obj.name = f"FreeEnd_{rounded_pos}"
-        obj.name = name
-        obj.location = pos
-        obj.gate_property.stl_file_path = FREE_END_STL
-        root, ext = os.path.splitext(FREE_END_STL)
-        json_path = root + ".json"
-        obj.gate_property.json_file_path = json_path
-        obj.gate_property.is_free_end = True
-        # obj.hide_set(True)
-        free_end_obj_list.append(obj)
-    return free_end_obj_list
-
 
 
 class MESH_OT_check_connection_selection(bpy.types.Operator):
   """
   Helper Operator
   Check if user input for connection is complete
-  Called by other operators
   """
   bl_idname = "mesh.check_connection_selection"
   bl_label = "Check Connection Selection"
 
   def execute(self, context):
-
     if not self.check_gate_selected():
       return {'CANCELLED'}
     if not self.check_port_select():
@@ -587,10 +422,7 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
     Check if full rows of gate are selected
     """
     connect_prop = bpy.context.scene.connection_property
-    ui_prop = bpy.context.scene.ui_property
-
     name_list = connect_prop.generic_gate_name_list
-    error_list = ui_prop.error_message_list
 
     something_selected = False
 
@@ -606,9 +438,6 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
             {'ERROR'},
             "Invalid object is selected"
           )
-          # operator that are not directly called can't show pop up error message
-          # store error in ui_prop, and the callee will report it
-          error_list.append("Invalid object is selected")
           return False
         if gate_obj:
           row_all_empty = False
@@ -621,14 +450,12 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
           {'ERROR'},
           "Gate Object Not Properly Selected"
         )
-        error_list.append("Gate Object Not Properly Selected")
         return False
     if not something_selected:
       self.report(
         {'ERROR'},
         "No Valid Connection"
       )
-      error_list.append("No Valid Connection")
     print("Gate Properly Selected")
     return True
 
@@ -639,7 +466,6 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
     Check of Logic Gate object have port selected
     """
     connect_prop = bpy.context.scene.connection_property
-    error_list = bpy.context.scene.ui_property.error_message_list
     name_list = connect_prop.generic_gate_name_list
     connection_dict = connect_prop.connection_dict
 
@@ -657,7 +483,6 @@ class MESH_OT_check_connection_selection(bpy.types.Operator):
               {'ERROR'},
               "Port Not Fully Selected"
             )
-            error_list.append("Port Not Fully Selected")
             return False
     print("Port Properly Selected")
     return True
@@ -843,10 +668,6 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
     try:
       bpy.ops.mesh.check_connection_selection()
     except RuntimeError:
-      error_list = bpy.context.scene.ui_property.error_message_list
-      for message in error_list:
-        self.report({"ERROR"}, message)
-      error_list.clear()
       return {'CANCELLED'}
     # clear previous data
     self.gate_port_dict.clear()
@@ -864,8 +685,6 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
     # mark the preview is made, show the delete button
     bpy.context.scene.ui_property.preview_is_shown = True
-    bpy.context.scene.ui_property.assembly_is_made = False
-
 
     return {'FINISHED'}
 
@@ -888,8 +707,6 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
           port_list = list(json_data["Port Info"].items())
           # print(port_list)
           self.gate_port_dict[obj.name] = port_list
-      elif stl_path and stl_path == FREE_END_STL:
-        have_valid_gate = True
     print(self.gate_port_dict)
     if not have_valid_gate:
       self.report(
@@ -969,7 +786,6 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
         obj_name = obj.name
         obj_pos = obj.location
         self.gate_port_abs_dict[("FREE_END", obj_name)] = obj_pos
-
 
 
 
@@ -1053,133 +869,6 @@ class MESH_OT_delete_preview_connection(bpy.types.Operator):
 
 
 
-class MESH_OT_choose_propergation_port(bpy.types.Operator):
-  """
-  Generic button to choose a port for calculate propegation delay
-  Pass in different arguments for different ports
-  """
-  bl_idname = "mesh.choose_propergation_port"
-  bl_label = "Choose Propergation Port"
-
-  is_start: bpy.props.BoolProperty(default=False)
-  port_name: bpy.props.StringProperty(default="")
-
-  def execute(self, context):
-    if self.is_start:
-      start_end_text = "Start"
-    else:
-      start_end_text = "End"
-    print(f"Choose {start_end_text} Port {self.port_name}")
-
-    ui_prop = bpy.context.scene.ui_property
-    if self.is_start:
-      ui_prop.start_port = self.port_name
-    else:
-      ui_prop.end_port = self.port_name
-
-    return {'FINISHED'}
-
-
-class MESH_OT_cancel_propergation_port(bpy.types.Operator):
-  """
-  Cancel choice of port
-  """
-  bl_idname = "mesh.cancel_propergation_port"
-  bl_label = "Cancel Propergation Port"
-
-  is_start: bpy.props.BoolProperty(default=False)
-
-  def execute(self, context):
-    if self.is_start:
-      start_end_text = "Start"
-    else:
-      start_end_text = "End"
-    print(f"Cancel {start_end_text} Port")
-
-    ui_prop = bpy.context.scene.ui_property
-    if self.is_start:
-      ui_prop.property_unset("start_port")
-    else:
-      ui_prop.property_unset("end_port")
-
-    return {'FINISHED'}
-
-
-
-
-class MESH_OT_calculate_propegation_delay(bpy.types.Operator):
-  """
-  Calculate propegation delay between two given ports
-  This method also calls the assembly class
-  """
-  bl_idname = "mesh.calculate_propegation_delay"
-  bl_label = "Calculate Propegation Delay"
-
-  # propegation_delay: bpy.props.FloatProperty(default=0)
-  propegation_delay = 0
-
-  def execute(self, context):
-    ui_prop = bpy.context.scene.ui_property
-    start_is_free_end = ui_prop.start_gate.gate_property.is_free_end
-    end_is_free_end = ui_prop.end_gate.gate_property.is_free_end
-
-    if start_is_free_end:
-      start_gate_name = "FREE_END"
-      start_port_name = ui_prop.start_gate.name
-    else:
-      start_gate_name = ui_prop.start_gate.name
-      start_port_name = ui_prop.start_port
-    if end_is_free_end:
-      end_gate_name = "FREE_END"
-      end_port_name = ui_prop.end_gate.name
-    else:
-      end_gate_name = ui_prop.end_gate.name
-      end_port_name = ui_prop.end_port
-
-    assembly = bpy.types.MESH_OT_make_assembly.assembly
-    delay = assembly.get_propagation_delay((start_gate_name, start_port_name), (end_gate_name, end_port_name))
-    if delay == float('inf'):
-      self.report({'WARNING'}, "Ports not connected, unable to calculate propagation delay")
-      bpy.context.scene.ui_property.propegation_delay = 0
-    elif delay == float('-inf'):
-      self.report({'ERROR'}, "Problem occured calculating propagation delay")
-      bpy.context.scene.ui_property.propegation_delay = 0
-    elif delay == 0:
-      self.report({'WARNING'}, "Two Port are the same.")
-      bpy.context.scene.ui_property.propegation_delay = 0
-    else:
-      bpy.context.scene.ui_property.propegation_delay = delay
-    return {'FINISHED'}
-
-
-
-
-class MESH_OT_change_group_visibility(bpy.types.Operator):
-  """
-  Change the visibility of a given group name
-  """
-  bl_idname = "mesh.change_group_visibility"
-  bl_label = "Change Group Visibility"
-
-  group_name: bpy.props.StringProperty(default="")
-  # ui_prop.show_...
-  # if true -> is shown -> click button to hide
-  # visibility_status: bpy.props.BoolProperty(default=True)
-
-  def execute(self, context):
-    connect_prop = bpy.context.scene.connection_property
-    ui_prop = bpy.context.scene.ui_property
-    visibility_status = getattr(ui_prop, f"show_{self.group_name}")
-    group_obj_list = getattr(connect_prop, f"{self.group_name}_obj_list")
-    for obj in group_obj_list:
-      obj.hide_set(visibility_status)
-
-    setattr(ui_prop, f"show_{self.group_name}", not visibility_status)
-    print(f"Button {self.group_name.capitalize()} Pressed, visibility_status: {visibility_status}->{not visibility_status}")
-
-    return {'FINISHED'}
-
-
 
 
 ############################################################################
@@ -1188,15 +877,9 @@ class MESH_OT_change_group_visibility(bpy.types.Operator):
 
 
 
-def get_addon_dir():
-  script_file = os.path.realpath(__file__)
-  directory = os.path.dirname(script_file)
-  print(directory)
-  return str(directory)
 
-GATE_LIBRARY_PATH = get_addon_dir() + "/Gate_Library/"
-FREE_END_STL = GATE_LIBRARY_PATH + "free_end_pointer.stl"
-DEFAULT_TIP_STL = GATE_LIBRARY_PATH + "pipe_tip.stl"
+FREE_END_STL = "/Users/lhwang/Desktop/free_end_pointer.stl"
+DEFAULT_TIP_STL = "/Users/lhwang/Desktop/pipe_tip.stl"
 
 
 class GatePropertyGroup(bpy.types.PropertyGroup):
@@ -1228,11 +911,6 @@ class ConnectionPropertyGroup(bpy.types.PropertyGroup):
     for prop_name in generic_gate_name_list:
       exec(f"{prop_name}{n} : bpy.props.PointerProperty(type=bpy.types.Object)")
 
-  gate_obj_list = []
-  pipe_obj_list = []
-  free_end_obj_list = []
-  stage_obj_list = []
-  tip_obj_list = []
 
 
 class UIPropertyGroup(bpy.types.PropertyGroup):
@@ -1241,28 +919,12 @@ class UIPropertyGroup(bpy.types.PropertyGroup):
   Avaliable in bpy.context.scene
   Stores property related to UI components
   """
-  # import gate
   fake_is_free_end: bpy.props.BoolProperty(default=False)
-  fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=GATE_LIBRARY_PATH)
-  # make assembly and preview
+  fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH')
   confirm_make_assembly: bpy.props.BoolProperty(default=False)
   preview_pipe_thickness: bpy.props.FloatProperty(default=.5, min=0, soft_max=1)
   preview_is_shown: bpy.props.BoolProperty(default=False)
-  assembly_is_made: bpy.props.BoolProperty(default=False)
-  # propegation delay
-  start_gate: bpy.props.PointerProperty(type=bpy.types.Object)
-  end_gate: bpy.props.PointerProperty(type=bpy.types.Object)
-  start_port: bpy.props.StringProperty(default="")
-  end_port: bpy.props.StringProperty(default="")
-  propegation_delay: bpy.props.FloatProperty(default=0)
-  # visibility control
-  show_gate: bpy.props.BoolProperty(default=True)
-  show_pipe: bpy.props.BoolProperty(default=True)
-  show_free_end: bpy.props.BoolProperty(default=True)
-  show_stage: bpy.props.BoolProperty(default=True)
-  show_tip: bpy.props.BoolProperty(default=True)
-  # error message
-  error_message_list = []
+
 
 
 class PipePropertyGroup(bpy.types.PropertyGroup):
@@ -1323,7 +985,7 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
 
 
 ############################################################################
-#################################  Pannel  #################################
+#################################  Pannel  ####################################
 ############################################################################
 
 
@@ -1349,9 +1011,6 @@ class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
     layout = self.layout
     layout.operator("mesh.primitive_monkey_add")
     layout.operator("mesh.reset_my_addon", text="Reset Addon")
-    # script_file = os.path.realpath(__file__)
-    # directory = os.path.dirname(script_file)
-    # print(directory)
 
 
 
@@ -1624,152 +1283,6 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
 
 
 
-class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
-  """
-  Calculate Propergation Delay Panel
-  Choose ports and calculate the propergation delay between them
-  """
-  bl_space_type = 'VIEW_3D'
-  bl_region_type = 'UI'
-  bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Calculate Propergation Delay"
-  bl_options = {'DEFAULT_CLOSED'}
-
-  def draw(self, context):
-    ui_prop = bpy.context.scene.ui_property
-    layout = self.layout
-
-    if not ui_prop.assembly_is_made:
-      row = layout.row()
-      row.alignment = 'CENTER'
-      row.label(text="- no Gate Assembly made -")
-      return
-
-    box = layout.box()
-    path_select_row = box.row()
-    start_row = path_select_row.row()
-    start_row.ui_units_x = 4
-    mid_col = path_select_row.column()
-    mid_col.ui_units_x = 0.5
-    mid_col.label(icon='FORWARD')
-    end_row = path_select_row.row()
-    end_row.ui_units_x = 4
-
-    start_row.prop(ui_prop, "start_gate", text="")
-    end_row.prop(ui_prop, "end_gate", text="")
-
-    start_gate = getattr(ui_prop, "start_gate")
-    end_gate = getattr(ui_prop, "end_gate")
-
-    self.add_port_choices(is_start=True, gate_obj=start_gate, row=start_row)
-    self.add_port_choices(is_start=False, gate_obj=end_gate, row=end_row)
-
-    button_row = layout.row()
-    button_row.operator("mesh.calculate_propegation_delay")
-    delay = getattr(ui_prop, "propegation_delay")
-    button_row.label(text=f"Propegation Delay:          {round(delay,4)}")
-
-
-
-
-  def add_port_choices(self, is_start, gate_obj, row):
-    """Helper Function"""
-    ui_prop = bpy.context.scene.ui_property
-
-    if gate_obj:
-      # if free end, don't show port choices
-      if gate_obj.gate_property.is_free_end:
-        return
-      # if port is not selected, show choices, else show cancel
-      is_selected = False
-      if is_start:
-        is_selected = bool(ui_prop.start_port)
-      else:
-        is_selected = bool(ui_prop.end_port)
-      # not selected
-      if not is_selected:
-        is_valid_gate = bool(gate_obj.gate_property.stl_file_path)
-        if not is_valid_gate:
-          row.label(text="- not valid gate -")
-        else:
-          is_free_end = gate_obj.gate_property.is_free_end
-          # free end
-          if is_free_end:
-            # print(f"{gate_obj}is free end")
-            # ui_prop.start_port = gate_obj.name
-            pass
-          # logic gate
-          else:
-            start_port_list = self.get_port_list(gate_obj)
-            choose_port_col = row.column()
-            for port_name in start_port_list:
-              choose_button = choose_port_col.operator("mesh.choose_propergation_port", text=port_name)
-              choose_button.port_name = port_name
-              choose_button.is_start = is_start
-      # selected
-      else:
-        if is_start:
-          cancel_text = ui_prop.start_port
-        else:
-          cancel_text = ui_prop.end_port
-        cancel_button = row.operator("mesh.cancel_propergation_port", text=cancel_text)
-        cancel_button.is_start = is_start
-
-
-
-  def get_port_list(self, gate_obj):
-    """Helper Function"""
-    json_path = gate_obj.gate_property.json_file_path
-    with open(json_path, 'r') as f:
-      json_data = json.load(f)
-      port_list = list(json_data["Port Info"].keys())
-    return port_list
-
-
-
-
-
-class VIEW3D_PT_set_group_visibility_panel(bpy.types.Panel):
-  """
-  Set Group Visibility Panel
-  Choose which group of object you want to turn invisible
-  Useful when exporting stl files
-  """
-  bl_space_type = 'VIEW_3D'
-  bl_region_type = 'UI'
-  bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Set Group Visibility"
-  bl_options = {'DEFAULT_CLOSED'}
-
-  def draw(self, context):
-    layout = self.layout
-    row = layout.row()
-
-    self.add_show_hide_button("gate", row)
-    self.add_show_hide_button("pipe", row)
-    self.add_show_hide_button("free_end", row)
-    self.add_show_hide_button("stage", row)
-    self.add_show_hide_button("tip", row)
-
-  def add_show_hide_button(self, group_name, row):
-    """Helper Function"""
-    connect_prop = bpy.context.scene.connection_property
-    ui_prop = bpy.context.scene.ui_property
-
-    visibility_status = getattr(ui_prop, f"show_{group_name}")
-    button_text = f"{self.get_show_hide_text(visibility_status)} {group_name.capitalize()}"
-    button = row.operator("mesh.change_group_visibility", text=button_text)
-
-    button.group_name = group_name
-    # button.visibility_status = getattr(ui_prop, f"show_{group_name}")
-
-    # print(f"Button {group_name.capitalize()} {self.get_show_hide_text(visibility_status)} Drawn")
-
-  def get_show_hide_text(self, visibility_status):
-    """Helper Function"""
-    if visibility_status:
-      return "Hide"
-    return "Show"
 
 
 
@@ -1792,10 +1305,6 @@ class_to_register = [
   MESH_OT_make_preview_pipe,
   MESH_OT_make_preview_connection,
   MESH_OT_delete_preview_connection,
-  MESH_OT_choose_propergation_port,
-  MESH_OT_cancel_propergation_port,
-  MESH_OT_calculate_propegation_delay,
-  MESH_OT_change_group_visibility,
 
   GatePropertyGroup,
   ConnectionPropertyGroup,
@@ -1807,8 +1316,6 @@ class_to_register = [
   VIEW3D_PT_add_connection_panel,
   VIEW3D_PT_pipe_property_pannel,
   VIEW3D_PT_make_assembly_panel,
-  VIEW3D_PT_calculate_propergation_delay_panel,
-  VIEW3D_PT_set_group_visibility_panel,
 
 ]
 
