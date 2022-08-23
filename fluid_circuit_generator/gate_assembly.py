@@ -9,6 +9,8 @@ import json
 import os
 import sys
 import importlib.util
+from math import sin, cos, acos, pi
+import numpy as np
 import bpy
 
 # pipe_system_spec = importlib.util.spec_from_file_location("pipe_system.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/pipe_system.py")
@@ -40,7 +42,7 @@ class GateAssembly:
   def __init__(self):
 
     self.pipe_system = pipe_system.PipeSystem()
-    # {gate_name : gate_object}
+    # {gate_name : Logic_Gate Class Object}
     self.logic_gate_dict = {}
     # {port_name : coord}
     # gate_name for free end port is "FREE_END"
@@ -162,6 +164,10 @@ class GateAssembly:
 
 
   def make_connections(self):
+    """
+    Wraper function
+    Make all the connections after adding all of them
+    """
     self.pipe_system.to_connect_list = self.to_connect_list[:]
     for connection in self.to_connect_list:
       self.pipe_system.connect_two_port(connection[0], connection[1])
@@ -281,6 +287,8 @@ class GateAssembly:
     return None
 
 
+
+
   def add_stage(self):
     """
     Call this function to auto generate stage under each logic gate
@@ -307,6 +315,7 @@ class GateAssembly:
       stage_object = bpy.context.active_object
       stage_object.dimensions = (stage_x_dim, stage_y_dim, stage_z_dim)
       stage_object.location = (stage_x_pos, stage_y_pos, stage_z_pos)
+      stage_object.name = f"Stage-{gate.gate_obj.name}"
 
       # stage_min_range = tuple(map(lambda a,b: a-b/2-1, (stage_x_pos, stage_y_pos, stage_z_pos), (stage_x_dim, stage_y_dim, stage_z_dim)))
       # stage_max_range = tuple(map(lambda a,b: a+b/2+1, (stage_x_pos, stage_y_pos, stage_z_pos), (stage_x_dim, stage_y_dim, stage_z_dim)))
@@ -335,6 +344,7 @@ class GateAssembly:
         to_cut_sylinder = self.make_solid_sylinder(f"Cut_{(stage_x_pos, stage_y_pos, stage_z_pos)}", to_cut_path)
         self.cut_out_with_boolean(stage_object, to_cut_sylinder)
 
+      self.add_guide_arrow(gate.gate_obj, stage_object)
       stage_obj_list.append(stage_object)
     return stage_obj_list
 
@@ -380,6 +390,8 @@ class GateAssembly:
     stage_object.modifiers.new(junction_modifier_name, "BOOLEAN").object = to_cut_sylinder
     stage_object.modifiers[junction_modifier_name].operation = 'DIFFERENCE'
     stage_object.modifiers[junction_modifier_name].solver = "EXACT"
+    stage_object.modifiers[junction_modifier_name].use_self = True
+
     # fully select before apply
     stage_object.select_set(True)
     bpy.context.view_layer.objects.active = stage_object
@@ -389,10 +401,97 @@ class GateAssembly:
     # to_cut_sylinder.hide_set(True)
 
 
+  def add_guide_arrow(self, gate, stage):
+    """
+    Carve an arrow into the stage which points to the X direction of the logic gate
+    Act as a guide during assembly
+    """
+    # make arrow object
+    bpy.ops.mesh.primitive_cube_add()
+    arrow = bpy.context.active_object
+    arrow.dimensions = (1, .5, .5)
+    bpy.ops.object.mode_set(mode = 'EDIT')
+
+    bpy.ops.mesh.primitive_cylinder_add(
+      location=(0.5, 0, 0),
+      rotation=(0, 0, -1.5708),
+      vertices=3,
+      radius=.6,
+      depth=.5
+    )
+    bpy.ops.object.mode_set(mode = 'OBJECT')
+
+    # calculate gate direction projected onto the stage
+    x_unit = (1,0,0)
+    origin = (0,0,0)
+    loc = tuple(gate.location)
+    rot = tuple(gate.rotation_euler)
+    scl = tuple(gate.scale)
+    new_x_unit = self.calculate_abs_pos((loc, rot, scl), x_unit)
+    new_origin = self.calculate_abs_pos((loc, rot, scl), origin)
+
+    proj_origin = (new_origin[0], new_origin[1], 0)
+    proj_x_unit = (new_x_unit[0], new_x_unit[1], 0)
+
+    dir_vector = np.subtract(proj_x_unit, proj_origin)
+
+    angle_cos = np.dot(dir_vector, x_unit) / (np.linalg.norm(dir_vector) * np.linalg.norm(x_unit))
+
+    rot_angle = acos(angle_cos)
+    if dir_vector[1] < 0:
+      rot_angle = 2*pi - rot_angle
+
+    # top of stage
+    proj_height = stage.location[2] + stage.dimensions[2]/2
+    center_stage_loc = (stage.location[0], stage.location[1], proj_height)
+
+    # place arrow
+    arrow.location = center_stage_loc
+    arrow.rotation_euler = (0,0,rot_angle)
+
+    self.cut_out_with_boolean(stage, arrow)
+
+
+  # apply transformations to relative port pos
+  def calculate_abs_pos(self, placement_data, port_pos):
+    """
+    Helper function to calculate the absolute port position
+    """
+
+    # Linear Algibra, Euler rotation
+    x,y,z = placement_data[1]
+    # print("\n\nX,Y,Z to rotate",x,y,z)
+    x_matrix = np.array([[1, 0, 0],\
+                          [0, cos(x), -sin(x)],\
+                          [0, sin(x), cos(x)]])
+
+    y_matrix = np.array([[cos(y), 0, sin(y)],\
+                          [0, 1, 0],\
+                          [-sin(y), 0, cos(y)]])
+
+    z_matrix = np.array([[cos(z), -sin(z), 0],\
+                          [sin(z), cos(z), 0],\
+                          [0, 0, 1]])
+
+    # scale -> ratate -> move
+    scaled_pos = list(map(lambda a,b: a*b, port_pos, placement_data[2]))
+
+    vector_before = np.array([scaled_pos[0], scaled_pos[1], scaled_pos[2]])
+    vector_after = np.dot(np.dot(z_matrix, y_matrix), np.dot(x_matrix, vector_before))
+    rotated_pos = list(vector_after)
+
+    moved_pos = list(map(lambda a,b: a+b, rotated_pos, placement_data[0]))
+    rounded_pos = list(map(lambda a: round(a,2), moved_pos))
+
+    # print(f"Port Pos: {port_pos} -> {rounded_pos}")
+    return rounded_pos
+
+
 
 
 
   def add_tip(self, stl_path):
+    """Add a custom tip stl to every tip of the tube"""
 
     # handles tip stl
     abs_path = bpy.path.abspath(stl_path)
@@ -570,3 +669,15 @@ if __name__ == '__main__':
     a.print_connection_group()
     print(a.get_warning_message())
     print(a.get_error_message())
+
+
+
+
+
+
+
+
+
+
+
+
