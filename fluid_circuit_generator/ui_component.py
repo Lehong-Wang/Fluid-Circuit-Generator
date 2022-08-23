@@ -1235,6 +1235,26 @@ class ConnectionPropertyGroup(bpy.types.PropertyGroup):
   tip_obj_list = []
 
 
+def flip_is_free_end(self, context):
+  """Helper Function"""
+  print("my test function flip_is_free_end", self)
+  ui_prop = bpy.context.scene.ui_property
+  # if is_logic_gate is True, free_end is False
+  if ui_prop.fake_is_logic_gate:
+    ui_prop.fake_is_free_end = False
+  # if both False, the other is True
+  if not ui_prop.fake_is_logic_gate and not ui_prop.fake_is_free_end:
+    ui_prop.fake_is_free_end = True
+
+def flip_is_logic_gate(self, context):
+  """Helper Function"""
+  print("my test function flip_is_logic_gate", self)
+  ui_prop = bpy.context.scene.ui_property
+  if ui_prop.fake_is_free_end:
+    ui_prop.fake_is_logic_gate = False
+  if not ui_prop.fake_is_logic_gate and not ui_prop.fake_is_free_end:
+    ui_prop.fake_is_logic_gate = True
+
 class UIPropertyGroup(bpy.types.PropertyGroup):
   """
   UI Property Group
@@ -1242,7 +1262,8 @@ class UIPropertyGroup(bpy.types.PropertyGroup):
   Stores property related to UI components
   """
   # import gate
-  fake_is_free_end: bpy.props.BoolProperty(default=False)
+  fake_is_free_end: bpy.props.BoolProperty(default=False, update=flip_is_logic_gate)
+  fake_is_logic_gate: bpy.props.BoolProperty(default=True, update=flip_is_free_end)
   fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=GATE_LIBRARY_PATH)
   # make assembly and preview
   confirm_make_assembly: bpy.props.BoolProperty(default=False)
@@ -1347,7 +1368,7 @@ class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
 
   def draw(self, context):
     layout = self.layout
-    layout.operator("mesh.primitive_monkey_add")
+    layout.operator("mesh.primitive_monkey_add", text="", icon='MONKEY')
     layout.operator("mesh.reset_my_addon", text="Reset Addon")
     # script_file = os.path.realpath(__file__)
     # directory = os.path.dirname(script_file)
@@ -1373,10 +1394,17 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
   def draw(self, context):
     layout = self.layout
     # is_free_end | path
-    select_path_row = layout.row()
-    select_path_row.prop(bpy.context.scene.ui_property, "fake_is_free_end", toggle=1)
-    if not bpy.context.scene.ui_property.fake_is_free_end:
-      select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path")
+    select_gate_row = layout.row()
+    is_free_end_row = select_gate_row.row()
+    select_path_row = select_gate_row.row()
+
+    is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_free_end", toggle=1, text="Free End")
+    is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_logic_gate", toggle=1, text="Logic Gate")
+    select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path", text="STL Path")
+
+    if bpy.context.scene.ui_property.fake_is_free_end:
+      select_path_row.enabled = False
+
     layout.operator("mesh.add_gate_object")
 
     transform_box = layout.box()
