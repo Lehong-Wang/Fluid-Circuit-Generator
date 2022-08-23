@@ -11,7 +11,7 @@ All other functionalities can be run with this file alone
 
 import json
 import os
-from math import radians, sin, cos
+from math import radians, degrees, sin, cos
 import numpy as np
 import bpy
 
@@ -492,7 +492,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
       else:
         imported_gate = self.assembly.add_gate(gate_info[1], gate_info[2])
         imported_gate.move_gate(gate_info[3][0], gate_info[3][1], gate_info[3][2])
-        imported_gate.rotate_gate(gate_info[4][0], gate_info[4][1], gate_info[4][2])
+        imported_gate.rotate_gate(degrees(gate_info[4][0]), degrees(gate_info[4][1]), degrees(gate_info[4][2]))
         imported_gate.scale_gate(gate_info[5][0], gate_info[5][1], gate_info[5][2])
         imported_gate.gate_obj.gate_property.stl_file_path = gate_info[2]
         root,ext = os.path.splitext(gate_info[2])
@@ -1851,3 +1851,6 @@ def unregister():
     bpy.utils.unregister_class(cls)
   unregister_properties()
   print("All Class UnRegistered")
+
+
+
