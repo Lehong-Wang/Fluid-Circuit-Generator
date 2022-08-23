@@ -1400,7 +1400,7 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
 
     is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_free_end", toggle=1, text="Free End")
     is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_logic_gate", toggle=1, text="Logic Gate")
-    select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path", text="STL Path")
+    select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path", text="Stl Path")
 
     if bpy.context.scene.ui_property.fake_is_free_end:
       select_path_row.enabled = False
@@ -1420,7 +1420,7 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
       # normal gate have rotate and scale
       if not obj.gate_property.is_free_end:
         rotation_row = transform_box.row()
-        rotation_row.prop(obj, "rotation_euler")
+        rotation_row.prop(obj, "rotation_euler", text="Roation:")
         scale_row = transform_box.row()
         scale_row.prop(obj, "scale")
 
@@ -1438,14 +1438,14 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Add Logic Gate"
+  bl_label = "Add Logic Gate Connection"
   bl_options = {'DEFAULT_CLOSED'}
 
   # connection_dict = {"hi":"hello"}
 
   def draw(self, context):
     layout = self.layout
-    layout.operator("mesh.add_gate_connection")
+    layout.operator("mesh.add_gate_connection", text="Add Connection")
 
 
     # draw title
@@ -1455,8 +1455,8 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
     start_row.alignment = 'CENTER'
     end_row = title_row.row()
     end_row.alignment = 'CENTER'
-    start_row.label(text="Start Gate")
-    end_row.label(text="End Gate")
+    start_row.label(text="Start")
+    end_row.label(text="End")
     # table columns
     connection_inner_row = connection_box.row()
     start_col = connection_inner_row.column()
@@ -1586,23 +1586,22 @@ class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
     tip_col = layout_row.column()
 
     pipe_prop = bpy.context.scene.pipe_property
-    pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius")
-    pipe_dimention_col.prop(pipe_prop, "pipe_thickness")
-    pipe_dimention_col.prop(pipe_prop, "unit_dimention")
+    pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius", text="inner radius")
+    pipe_dimention_col.prop(pipe_prop, "pipe_thickness", text="thickness")
+    pipe_dimention_col.prop(pipe_prop, "unit_dimention", text="unit length")
 
-    stage_col.prop(pipe_prop, "add_stage")
+    stage_col.prop(pipe_prop, "add_stage", text="add stage block")
     add_stage = getattr(pipe_prop, "add_stage")
     if add_stage:
-      stage_col.prop(pipe_prop, "stage_height")
-      stage_col.prop(pipe_prop, "stage_rim_size")
+      stage_col.prop(pipe_prop, "stage_height", text="height")
+      stage_col.prop(pipe_prop, "stage_rim_size", text="rim size")
 
     # tip_col.prop(pipe_prop, "tip_length")
-    tip_col.prop(pipe_prop, "add_custom_tip")
+    tip_col.prop(pipe_prop, "add_custom_tip", text="add custom tip")
     add_custom_tip = getattr(pipe_prop, "add_custom_tip")
     if add_custom_tip:
-      tip_col.prop(pipe_prop, "tip_offset")
-      tip_col.prop(pipe_prop, "tip_stl_path")
-
+      tip_col.prop(pipe_prop, "tip_offset", text="offset")
+      tip_col.prop(pipe_prop, "tip_stl_path", text="stl path")
 
     layout.operator("mesh.make_preview_pipe")
 
@@ -1627,7 +1626,7 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Make assembly"
+  bl_label = "Make Assembly"
   bl_options = {'DEFAULT_CLOSED'}
 
 
@@ -1635,16 +1634,16 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
     ui_prop = bpy.context.scene.ui_property
     layout = self.layout
     row = layout.row()
-    row.prop(ui_prop, "confirm_make_assembly")
+    row.prop(ui_prop, "confirm_make_assembly", text="Confirm Changes")
     confirm = getattr(ui_prop, 'confirm_make_assembly')
     if confirm:
-      row.operator("mesh.make_assembly")
+      row.operator("mesh.make_assembly", text="Make Assembly")
     else:
       preview_shown = ui_prop.preview_is_shown
       if not preview_shown:
         col = row.column()
         col.operator("mesh.make_preview_connection")
-        col.prop(ui_prop, "preview_pipe_thickness")
+        col.prop(ui_prop, "preview_pipe_thickness", text="line thickness")
       else:
         row.operator("mesh.delete_preview_connection")
 
