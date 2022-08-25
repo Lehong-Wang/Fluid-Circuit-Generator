@@ -1364,7 +1364,7 @@ class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
   bl_label = "Main Panel"
-  bl_options = {'DEFAULT_CLOSED'}
+  # bl_options = {'DEFAULT_CLOSED'}
 
   def draw(self, context):
     layout = self.layout
@@ -1388,24 +1388,24 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Add Logic Gate"
-  bl_options = {'DEFAULT_CLOSED'}
+  bl_label = "Add Components"
+  # bl_options = {'DEFAULT_CLOSED'}
 
   def draw(self, context):
     layout = self.layout
     # is_free_end | path
     select_gate_row = layout.row()
     is_free_end_row = select_gate_row.row()
-    select_path_row = select_gate_row.row()
+    select_path_row = layout.row()
 
     is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_free_end", toggle=1, text="Free End")
     is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_logic_gate", toggle=1, text="Logic Gate")
-    select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path", text="Stl Path")
+    select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path", text="Import Stl File")
 
     if bpy.context.scene.ui_property.fake_is_free_end:
       select_path_row.enabled = False
 
-    layout.operator("mesh.add_gate_object")
+    layout.operator("mesh.add_gate_object", text="Add Object")
 
     transform_box = layout.box()
 
@@ -1420,7 +1420,7 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
       # normal gate have rotate and scale
       if not obj.gate_property.is_free_end:
         rotation_row = transform_box.row()
-        rotation_row.prop(obj, "rotation_euler", text="Roation:")
+        rotation_row.prop(obj, "rotation_euler", text="Rotation:")
         scale_row = transform_box.row()
         scale_row.prop(obj, "scale")
 
@@ -1438,14 +1438,14 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Add Logic Gate Connection"
-  bl_options = {'DEFAULT_CLOSED'}
+  bl_label = "Add Connections"
+  # bl_options = {'DEFAULT_CLOSED'}
 
   # connection_dict = {"hi":"hello"}
 
   def draw(self, context):
     layout = self.layout
-    layout.operator("mesh.add_gate_connection", text="Add Connection")
+    layout.operator("mesh.add_gate_connection", text="Add Connections")
 
 
     # draw title
@@ -1575,35 +1575,38 @@ class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Pipe Properties"
-  bl_options = {'DEFAULT_CLOSED'}
+  bl_label = "Tubing Properties"
+  # bl_options = {'DEFAULT_CLOSED'}
 
   def draw(self, context):
     layout = self.layout
     layout_row = layout.row()
     pipe_dimention_col = layout_row.column()
+    pipe_dimention_col.ui_units_x = 1
     stage_col = layout_row.column()
+    stage_col.ui_units_x = 1
     tip_col = layout_row.column()
+    tip_col.ui_units_x = 1
 
     pipe_prop = bpy.context.scene.pipe_property
-    pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius", text="inner radius")
-    pipe_dimention_col.prop(pipe_prop, "pipe_thickness", text="thickness")
-    pipe_dimention_col.prop(pipe_prop, "unit_dimention", text="unit length")
+    pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius", text="inner radius (cm)")
+    pipe_dimention_col.prop(pipe_prop, "pipe_thickness", text="thickness (cm)")
+    pipe_dimention_col.prop(pipe_prop, "unit_dimention", text="unit length (cm)")
 
     stage_col.prop(pipe_prop, "add_stage", text="add stage block")
     add_stage = getattr(pipe_prop, "add_stage")
     if add_stage:
-      stage_col.prop(pipe_prop, "stage_height", text="height")
-      stage_col.prop(pipe_prop, "stage_rim_size", text="rim size")
+      stage_col.prop(pipe_prop, "stage_height", text="height (cm)")
+      stage_col.prop(pipe_prop, "stage_rim_size", text="rim size (cm)")
 
     # tip_col.prop(pipe_prop, "tip_length")
     tip_col.prop(pipe_prop, "add_custom_tip", text="add custom tip")
     add_custom_tip = getattr(pipe_prop, "add_custom_tip")
     if add_custom_tip:
-      tip_col.prop(pipe_prop, "tip_offset", text="offset")
-      tip_col.prop(pipe_prop, "tip_stl_path", text="stl path")
+      tip_col.prop(pipe_prop, "tip_offset", text="offset (cm)")
+      tip_col.prop(pipe_prop, "tip_stl_path", text="stl file")
 
-    layout.operator("mesh.make_preview_pipe")
+    layout.operator("mesh.make_preview_pipe", text="Make Preview Tubing")
 
 
 
@@ -1626,8 +1629,8 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
   bl_space_type = 'VIEW_3D'
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
-  bl_label = "Make Assembly"
-  bl_options = {'DEFAULT_CLOSED'}
+  bl_label = "Generate Assembly"
+  # bl_options = {'DEFAULT_CLOSED'}
 
 
   def draw(self, context):
@@ -1637,15 +1640,15 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
     row.prop(ui_prop, "confirm_make_assembly", text="Confirm Changes")
     confirm = getattr(ui_prop, 'confirm_make_assembly')
     if confirm:
-      row.operator("mesh.make_assembly", text="Make Assembly")
+      row.operator("mesh.make_assembly", text="Generate Assembly")
     else:
       preview_shown = ui_prop.preview_is_shown
       if not preview_shown:
         col = row.column()
-        col.operator("mesh.make_preview_connection")
-        col.prop(ui_prop, "preview_pipe_thickness", text="line thickness")
+        col.operator("mesh.make_preview_connection", text="Preview Connecitons")
+        # col.prop(ui_prop, "preview_pipe_thickness", text="line thickness (cm)")
       else:
-        row.operator("mesh.delete_preview_connection")
+        row.operator("mesh.delete_preview_connection", text="Hide Preview")
 
 
 
@@ -1660,7 +1663,7 @@ class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
   bl_label = "Calculate Propergation Delay"
-  bl_options = {'DEFAULT_CLOSED'}
+  # bl_options = {'DEFAULT_CLOSED'}
 
   def draw(self, context):
     ui_prop = bpy.context.scene.ui_property
@@ -1694,7 +1697,7 @@ class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
     button_row = layout.row()
     button_row.operator("mesh.calculate_propegation_delay")
     delay = getattr(ui_prop, "propegation_delay")
-    button_row.label(text=f"Propegation Delay:          {round(delay,4)}")
+    button_row.label(text=f"Propegation Delay:\t\t{round(delay,4)} s")
 
 
 
@@ -1766,7 +1769,7 @@ class VIEW3D_PT_set_group_visibility_panel(bpy.types.Panel):
   bl_region_type = 'UI'
   bl_category = ADDON_PANNEL_LABEL
   bl_label = "Set Group Visibility"
-  bl_options = {'DEFAULT_CLOSED'}
+  # bl_options = {'DEFAULT_CLOSED'}
 
   def draw(self, context):
     layout = self.layout
