@@ -810,7 +810,7 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
       target_scale = target_radius / tip_radius
 
       tip_obj.name = tip_name
-      tip_obj.scale = (target_scale, target_scale, 1)
+      tip_obj.scale = (target_scale, target_scale, target_scale)
       tip_obj.location = (tip_pos[0], tip_pos[1], tip_pos[2]-offset)
 
 
@@ -1026,7 +1026,8 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       curve_object = bpy.data.objects.new(PREVIEW_PIPE_NAME, curve_data)
       bpy.context.collection.objects.link(curve_object)
 
-      curve_object.data.bevel_depth = bpy.context.scene.ui_property.preview_pipe_thickness
+      line_thickness = bpy.context.scene.ui_property.preview_pipe_thickness * bpy.context.scene.pipe_property.unit_dimention
+      curve_object.data.bevel_depth = line_thickness
       curve_object.data.bevel_resolution = 2
 
 
@@ -1267,7 +1268,7 @@ class UIPropertyGroup(bpy.types.PropertyGroup):
   fake_stl_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=GATE_LIBRARY_PATH)
   # make assembly and preview
   confirm_make_assembly: bpy.props.BoolProperty(default=False)
-  preview_pipe_thickness: bpy.props.FloatProperty(default=.5, min=0, soft_max=1)
+  preview_pipe_thickness: bpy.props.FloatProperty(default=.3, min=0, soft_max=1)
   preview_is_shown: bpy.props.BoolProperty(default=False)
   assembly_is_made: bpy.props.BoolProperty(default=False)
   # propegation delay
@@ -1697,7 +1698,7 @@ class VIEW3D_PT_calculate_propergation_delay_panel(bpy.types.Panel):
     button_row = layout.row()
     button_row.operator("mesh.calculate_propegation_delay")
     delay = getattr(ui_prop, "propegation_delay")
-    button_row.label(text=f"Propegation Delay:\t\t{round(delay,4)} s")
+    button_row.label(text=f"Propegation Delay:      {round(delay,4)} s")
 
 
 
