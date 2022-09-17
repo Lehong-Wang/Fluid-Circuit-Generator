@@ -37,7 +37,7 @@ bl_info = {
 
 
 # change the maxium number of connection allowed here
-MAX_NUM_OF_CONNECTIONS = 20
+MAX_NUM_OF_CONNECTIONS = 100
 
 
 ############################################################################
