@@ -185,7 +185,7 @@ class MESH_OT_add_gate_connection(bpy.types.Operator):
 
     self.report(
       {"ERROR"},
-      "Reached maxium number of connections"
+      f"Reached maxium number of connections (currently set to {MAX_NUM_OF_CONNECTIONS})"
     )
     return {'CANCELLED'}
 
@@ -865,7 +865,9 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
     # mark the preview is made, show the delete button
     bpy.context.scene.ui_property.preview_is_shown = True
     bpy.context.scene.ui_property.assembly_is_made = False
-
+    # self.gate_port_dict.clear()
+    # self.gate_port_abs_dict.clear()
+    # self.connection_list.clear()
 
     return {'FINISHED'}
 
@@ -1012,6 +1014,8 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       end_pos = self.gate_port_abs_dict[end_port]
 
       preview_connection = [start_pos, end_pos]
+      print(start_port, end_port)
+      print(preview_connection)
 
       # make pipe
       curve_data = bpy.data.curves.new(PREVIEW_PIPE_NAME, type = "CURVE")
@@ -1183,6 +1187,198 @@ class MESH_OT_change_group_visibility(bpy.types.Operator):
 
 
 
+class MESH_OT_save_current_progress(bpy.types.Operator):
+  """
+  Save
+  """
+  bl_idname = "mesh.save_current_progress"
+  bl_label = "Save Current Progress"
+
+  def execute(self, context):
+
+
+
+    progress_data = {}
+    # {obj_name : [[pos], [rot], [scl], [is_free_end, stl_path, json_path]]}
+    progress_data["Objects"] = {}
+    # {"Name List" : generic_gate_name_list, index : [gate_name, port_name]}
+    progress_data["Connection"] = {}
+    #
+    progress_data["Pipe"] = {}
+
+    # save all objects in scene
+    for obj in bpy.context.scene.objects:
+      pos = list(obj.location)
+      rot = list(obj.rotation_euler)
+      scl = list(obj.scale)
+      gate_prop = obj.gate_property
+      gate_prop_list = [gate_prop.is_free_end, gate_prop.stl_file_path, gate_prop.json_file_path]
+
+      progress_data["Objects"][obj.name] = [pos, rot, scl, gate_prop_list]
+
+
+    connect_prop = bpy.context.scene.connection_property
+    name_list = connect_prop.generic_gate_name_list
+    connect_dict = connect_prop.connection_dict
+    # save all connections
+    progress_data["Connection"]["Name List"] = name_list
+    # loop through connection_dict, will save all connection with selected ports
+    for key,value in connect_dict.items():
+      n,i = key
+      current_port_name = value
+      current_gate_var_name = f"{name_list[i]}{n}"
+      current_gate_obj = getattr(connect_prop, current_gate_var_name)
+      # key for json can't be tuple
+      # convert (n,i) to index
+      # parse by i = index % len, n = index // len
+      index = n * len(name_list) + i
+      progress_data["Connection"][index] = (current_gate_obj.name, current_port_name)
+
+
+    # save all pipe settings
+    pipe_prop = bpy.context.scene.pipe_property
+    progress_data["Pipe"]["pipe_inner_radius"] = pipe_prop.pipe_inner_radius
+    progress_data["Pipe"]["pipe_thickness"] = pipe_prop.pipe_thickness
+    progress_data["Pipe"]["tip_length"] = pipe_prop.tip_length
+    progress_data["Pipe"]["unit_dimention"] = pipe_prop.unit_dimention
+    progress_data["Pipe"]["show_pipe_preview"] = pipe_prop.show_pipe_preview
+    progress_data["Pipe"]["add_stage"] = pipe_prop.add_stage
+    progress_data["Pipe"]["stage_height"] = pipe_prop.stage_height
+    progress_data["Pipe"]["stage_rim_size"] = pipe_prop.stage_rim_size
+    progress_data["Pipe"]["add_custom_tip"] = pipe_prop.add_custom_tip
+    progress_data["Pipe"]["tip_offset"] = pipe_prop.tip_offset
+    progress_data["Pipe"]["tip_stl_path"] = pipe_prop.tip_stl_path
+
+
+    print(json.dumps(progress_data, indent=2))
+
+    with open(PROGRESS_FILE, 'w') as f:
+      json.dump(progress_data, f, indent=2)
+
+    self.report(
+      {"INFO"},
+      f"Saved progress to {PROGRESS_FILE}"
+      )
+    return {'FINISHED'}
+
+
+
+class MESH_OT_load_saved_progress(bpy.types.Operator):
+  """
+  Save
+  """
+  bl_idname = "mesh.load_saved_progress"
+  bl_label = "Load Saved Progress"
+
+  def execute(self, context):
+    ui_prop = bpy.context.scene.ui_property
+    progress_file_path = ui_prop.progress_file_path
+
+    root,ext = os.path.splitext(progress_file_path)
+    if ext != ".json":
+      self.report(
+        {"ERROR"},
+        f"File is Not an JSON file, file: {progress_file_path}"
+      )
+      return {"CANCELLED"}
+
+    # reset addon, erase everything
+    bpy.ops.mesh.reset_my_addon()
+
+    with open(progress_file_path, 'r') as f:
+      progress_data = json.load(f)
+      # print(progress_data)
+
+    # load objects
+    # none gate / free_end objects are ignored
+    loaded_obj_dict = progress_data["Objects"]
+    for key,value in loaded_obj_dict.items():
+      obj_name = key
+      obj_pos = value[0]
+      obj_rot = value[1]
+      obj_scl = value[2]
+      obj_is_free_end = value[3][0]
+      obj_stl_file_path = value[3][1]
+      obj_json_file_path = value[3][2]
+
+      # is gate / free_end object
+      if obj_stl_file_path:
+        try:
+          bpy.ops.import_mesh.stl(filepath = obj_stl_file_path)
+        except FileNotFoundError:
+          self.report(
+            {"ERROR"},
+            f"File Not Exist at {obj_stl_file_path}"
+            )
+          return {"CANCELLED"}
+
+        imported_object = bpy.context.active_object
+        imported_object.name = obj_name
+        imported_object.location = obj_pos
+        imported_object.rotation_euler = obj_rot
+        imported_object.scale = obj_scl
+        imported_object.gate_property.is_free_end = obj_is_free_end
+        imported_object.gate_property.stl_file_path = obj_stl_file_path
+        imported_object.gate_property.json_file_path = obj_json_file_path
+
+
+    connect_prop = bpy.context.scene.connection_property
+    # name_list = connect_prop.generic_gate_name_list
+    # connect_dict = connect_prop.connection_dict
+
+    # load connections
+    loaded_connect_dict = progress_data["Connection"]
+    connect_prop.generic_gate_name_list = loaded_connect_dict["Name List"]
+    name_list = connect_prop.generic_gate_name_list
+    del loaded_connect_dict["Name List"]
+
+    for key,value in loaded_connect_dict.items():
+      index = int(key)
+      n = index // len(name_list)
+      i = index % len(name_list)
+      gate_name = value[0]
+      port_name = value[1]
+
+      try:
+        gate_obj = bpy.data.objects[gate_name]
+      except KeyError:
+        self.report(
+          {"ERROR"},
+          f"Object with name {gate_name} not found in bpy.data.objects"
+          )
+        return {"CANCELLED"}
+
+      gate_var_name = f"{name_list[i]}{n}"
+      setattr(connect_prop, gate_var_name, gate_obj)
+      connect_prop.connection_dict[(n,i)] = port_name
+
+
+    # load pipe settings
+    pipe_prop = bpy.context.scene.pipe_property
+
+    pipe_prop.pipe_inner_radius = progress_data["Pipe"]["pipe_inner_radius"]
+    pipe_prop.pipe_thickness = progress_data["Pipe"]["pipe_thickness"]
+    pipe_prop.tip_length = progress_data["Pipe"]["tip_length"]
+    pipe_prop.unit_dimention = progress_data["Pipe"]["unit_dimention"] = pipe_prop.unit_dimention
+    pipe_prop.show_pipe_preview = progress_data["Pipe"]["show_pipe_preview"] = pipe_prop.show_pipe_preview
+    pipe_prop.add_stage = progress_data["Pipe"]["add_stage"]
+    pipe_prop.stage_height = progress_data["Pipe"]["stage_height"]
+    pipe_prop.stage_rim_size = progress_data["Pipe"]["stage_rim_size"]
+    pipe_prop.add_custom_tip = progress_data["Pipe"]["add_custom_tip"]
+    pipe_prop.tip_offset = progress_data["Pipe"]["tip_offset"]
+    pipe_prop.tip_stl_path = progress_data["Pipe"]["tip_stl_path"]
+
+
+    self.report(
+      {"INFO"},
+      "Successfully loaded from progress file."
+      )
+    return {'FINISHED'}
+
+
+
+
+
 ############################################################################
 ################################  Properties ###############################
 ############################################################################
@@ -1190,15 +1386,17 @@ class MESH_OT_change_group_visibility(bpy.types.Operator):
 
 
 def get_addon_dir():
+  """Helper Function"""
   script_file = os.path.realpath(__file__)
   directory = os.path.dirname(script_file)
   print(directory)
   return str(directory)
 
-GATE_LIBRARY_PATH = get_addon_dir() + "/Gate_Library/"
+ADDON_DIR = get_addon_dir() + "/"
+GATE_LIBRARY_PATH = ADDON_DIR + "/Gate_Library/"
 FREE_END_STL = GATE_LIBRARY_PATH + "free_end_pointer.stl"
 DEFAULT_TIP_STL = GATE_LIBRARY_PATH + "pipe_tip.stl"
-
+PROGRESS_FILE = ADDON_DIR + "saved_progress.json"
 
 class GatePropertyGroup(bpy.types.PropertyGroup):
   """
@@ -1262,6 +1460,9 @@ class UIPropertyGroup(bpy.types.PropertyGroup):
   Avaliable in bpy.context.scene
   Stores property related to UI components
   """
+  # main pannel
+  confirm_reset_addon: bpy.props.BoolProperty(default=False)
+  progress_file_path: bpy.props.StringProperty(subtype='FILE_PATH', default=PROGRESS_FILE)
   # import gate
   fake_is_free_end: bpy.props.BoolProperty(default=False, update=flip_is_logic_gate)
   fake_is_logic_gate: bpy.props.BoolProperty(default=True, update=flip_is_free_end)
@@ -1369,8 +1570,24 @@ class VIEW3D_PT_addon_main_panel(bpy.types.Panel):
 
   def draw(self, context):
     layout = self.layout
+    # Monkey !!!!!!
     layout.operator("mesh.primitive_monkey_add", text="", icon='MONKEY')
-    layout.operator("mesh.reset_my_addon", text="Reset Addon")
+    # add confirm before reset addon
+    if not bpy.context.scene.ui_property.confirm_reset_addon:
+      layout.prop(bpy.context.scene.ui_property, "confirm_reset_addon", toggle=1, text="Reset Addon")
+    else:
+      reset_addon_row = layout.row()
+      reset_addon_row.prop(bpy.context.scene.ui_property, "confirm_reset_addon", toggle=1, text="Cancel")
+      reset_addon_row.operator("mesh.reset_my_addon", text="Reset")
+
+    progress_row = layout.row()
+    progress_row.operator("mesh.save_current_progress")
+    progress_row.operator("mesh.load_saved_progress")
+    progress_row.prop(bpy.context.scene.ui_property, "progress_file_path")
+
+
+
+
     # script_file = os.path.realpath(__file__)
     # directory = os.path.dirname(script_file)
     # print(directory)
@@ -1827,6 +2044,8 @@ class_to_register = [
   MESH_OT_cancel_propergation_port,
   MESH_OT_calculate_propegation_delay,
   MESH_OT_change_group_visibility,
+  MESH_OT_save_current_progress,
+  MESH_OT_load_saved_progress,
 
   GatePropertyGroup,
   ConnectionPropertyGroup,
