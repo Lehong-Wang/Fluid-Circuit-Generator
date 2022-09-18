@@ -211,7 +211,7 @@ class MESH_OT_choose_connection_port(bpy.types.Operator):
     connection_dict = bpy.context.scene.connection_property.connection_dict
     connection_dict[(self.row_index, self.gate_index)] = self.port_name
     # self.filter_free_port_from_dict()
-    print(connection_dict)
+    # print(connection_dict)
 
     return {'FINISHED'}
 
@@ -243,7 +243,7 @@ class MESH_OT_cancel_connection_port(bpy.types.Operator):
         f"Key {key} not exist in Dict {connection_dict}"
       )
       return {'CANCELLED'}
-    print(connection_dict)
+    # print(connection_dict)
     return {'FINISHED'}
 
 
@@ -391,6 +391,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
   def validate_gate_port_pos(self, gate_obj):
+    """Check if all ports are in first coordinate"""
     gate_pos = list(gate_obj.location)
     gate_rot = list(gate_obj.rotation_euler)
     gate_rot_radians = list(map(radians, gate_rot))
@@ -537,6 +538,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
   def place_free_end_points(self):
+    """Place free end objects"""
     free_end_obj_list = []
     for gate_packet in self.gate_list:
       is_free_end = gate_packet[0]
@@ -1228,14 +1230,14 @@ class MESH_OT_change_group_visibility(bpy.types.Operator):
 
 class MESH_OT_save_current_progress(bpy.types.Operator):
   """
-  Save
+  Save current progress to json file in current working folder
+  Will save gate / free_end objects, connections, pipe settings
+  Won't save stuff only for UI like preview pipes
   """
   bl_idname = "mesh.save_current_progress"
   bl_label = "Save Current Progress"
 
   def execute(self, context):
-
-
 
     progress_data = {}
     # {obj_name : [[pos], [rot], [scl], [is_free_end, stl_path, json_path]]}
@@ -1256,11 +1258,11 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
 
         progress_data["Objects"][obj.name] = [pos, rot, scl, gate_prop_list]
 
-
+    # save all connections
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
     connect_dict = connect_prop.connection_dict
-    # save all connections
+
     progress_data["Connection"]["Name List"] = name_list
     # loop through connection_dict, will save all connection with selected ports
     for key,value in connect_dict.items():
@@ -1273,6 +1275,23 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
       # parse by i = index % len, n = index // len
       index = n * len(name_list) + i
       progress_data["Connection"][index] = (current_gate_obj.name, current_port_name)
+
+    # loop again to get free_ends
+    # do this because when you choose port, then change object to free_end
+    # the port info is still there
+    # by getting the gate first, then free_end will avoid this problem
+    # I know this is not good practice, but it's 2am and i'm really tired right now
+    for n in range(MAX_NUM_OF_CONNECTIONS):
+      for i,gate_name in enumerate(name_list):
+        # not gate port
+        if not (n,i) in connect_dict:
+          current_gate_var_name = f"{name_list[i]}{n}"
+          current_gate_obj = getattr(connect_prop, current_gate_var_name)
+          # not empty, is free_end
+          if current_gate_obj is not None:
+            print(current_gate_obj)
+            index = n * len(name_list) + i
+            progress_data["Connection"][index] = (current_gate_obj.name, "null")
 
 
     # save all pipe settings
@@ -1304,7 +1323,7 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
 
 class MESH_OT_load_saved_progress(bpy.types.Operator):
   """
-  Save
+  Load progress file into work space
   """
   bl_idname = "mesh.load_saved_progress"
   bl_label = "Load Saved Progress"
@@ -1358,7 +1377,7 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
             f"File Not Exist at {obj_stl_file_path}"
             )
           return {"CANCELLED"}
-
+        # load object properties
         imported_object = bpy.context.active_object
         imported_object.name = obj_name
         imported_object.location = obj_pos
@@ -1369,12 +1388,11 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
         imported_object.gate_property.json_file_path = obj_json_file_path
 
 
-    connect_prop = bpy.context.scene.connection_property
-    # name_list = connect_prop.generic_gate_name_list
-    # connect_dict = connect_prop.connection_dict
-
     # load connections
+    connect_prop = bpy.context.scene.connection_property
+
     loaded_connect_dict = progress_data["Connection"]
+    # get generic_gate_name_list
     connect_prop.generic_gate_name_list = loaded_connect_dict["Name List"]
     name_list = connect_prop.generic_gate_name_list
     del loaded_connect_dict["Name List"]
@@ -1397,7 +1415,9 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
 
       gate_var_name = f"{name_list[i]}{n}"
       setattr(connect_prop, gate_var_name, gate_obj)
-      connect_prop.connection_dict[(n,i)] = port_name
+      # not free_end, add port selection
+      if port_name != "null":
+        connect_prop.connection_dict[(n,i)] = port_name
 
 
     # load pipe settings
