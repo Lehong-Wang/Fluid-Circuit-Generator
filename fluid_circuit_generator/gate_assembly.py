@@ -403,6 +403,19 @@ class GateAssembly:
     bpy.data.objects.remove(to_cut_sylinder)
     # to_cut_sylinder.hide_set(True)
 
+    # mesh clean up
+    stage_object.select_set(True)
+    bpy.context.view_layer.objects.active = stage_object
+    bpy.ops.object.mode_set(mode = 'EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.vert_connect_nonplanar(angle_limit=0.001)
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.vert_connect_concave()
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.remove_doubles(threshold=0.002)
+    bpy.ops.object.mode_set(mode = 'OBJECT')
+
+
 
   def add_guide_arrow(self, gate, stage):
     """

@@ -715,19 +715,19 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
     stage_name = "Test Stage"
     tip_name = "Test Tip"
 
-    # delete previous preview objects
-    try:
-      bpy.data.objects.remove(bpy.data.objects[pipe_name])
-    except KeyError:
-      pass
-    try:
-      bpy.data.objects.remove(bpy.data.objects[stage_name])
-    except KeyError:
-      pass
-    try:
-      bpy.data.objects.remove(bpy.data.objects[tip_name])
-    except KeyError:
-      pass
+    # # delete previous preview objects
+    # try:
+    #   bpy.data.objects.remove(bpy.data.objects[pipe_name])
+    # except KeyError:
+    #   pass
+    # try:
+    #   bpy.data.objects.remove(bpy.data.objects[stage_name])
+    # except KeyError:
+    #   pass
+    # try:
+    #   bpy.data.objects.remove(bpy.data.objects[tip_name])
+    # except KeyError:
+    #   pass
 
     # make pipe
     curve_data = bpy.data.curves.new(pipe_name, type = "CURVE")
@@ -746,6 +746,7 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
     curve_object.data.bevel_resolution = 2
     solidify_modifier_name = "Solidify"
     curve_object.modifiers.new(solidify_modifier_name, "SOLIDIFY").thickness = thickness
+    pipe_prop.preview_obj_list.append(curve_object)
 
     # add stage
     if pipe_prop.add_stage:
@@ -761,6 +762,8 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
       stage_cube.name = stage_name
       stage_cube.dimensions = (length, length, height)
       stage_cube.location = stage_pos
+      pipe_prop.preview_obj_list.append(stage_cube)
+
 
     # add tip
     if pipe_prop.add_custom_tip:
@@ -812,10 +815,33 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
       tip_obj.name = tip_name
       tip_obj.scale = (target_scale, target_scale, target_scale)
       tip_obj.location = (tip_pos[0], tip_pos[1], tip_pos[2]-offset)
+      pipe_prop.preview_obj_list.append(tip_obj)
 
-
+    pipe_prop.preview_is_shown = True
     return {'FINISHED'}
 
+
+
+class MESH_OT_delete_preview_pipe(bpy.types.Operator):
+  """
+  Delete previously made preview pipe
+  """
+  bl_idname = "mesh.delete_preview_pipe"
+  bl_label = "Delete Preview Pipe"
+
+  def execute(self, context):
+    obj_list = bpy.context.scene.pipe_property.preview_obj_list
+    for obj in obj_list:
+      try:
+        bpy.data.objects.remove(obj)
+      except ReferenceError:
+        self.report(
+          {"WARNING"},
+          "Preview Object Already Deleted"
+        )
+    obj_list.clear()
+    bpy.context.scene.pipe_property.preview_is_shown = False
+    return {'FINISHED'}
 
 
 
@@ -865,9 +891,6 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
     # mark the preview is made, show the delete button
     bpy.context.scene.ui_property.preview_is_shown = True
     bpy.context.scene.ui_property.assembly_is_made = False
-    # self.gate_port_dict.clear()
-    # self.gate_port_abs_dict.clear()
-    # self.connection_list.clear()
 
     return {'FINISHED'}
 
@@ -892,7 +915,8 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
           self.gate_port_dict[obj.name] = port_list
       elif stl_path and stl_path == FREE_END_STL:
         have_valid_gate = True
-    print(self.gate_port_dict)
+    # print("Gate Port Dict:")
+    # print(self.gate_port_dict)
     if not have_valid_gate:
       self.report(
         {'ERROR'},
@@ -909,12 +933,13 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
     for key,value in self.gate_port_dict.items():
       gate_obj = bpy.context.scene.objects[key]
       gate_pos = list(gate_obj.location)
-      gate_rot = list(gate_obj.rotation_euler)
-      gate_rot_radians = list(map(radians, gate_rot))
+      gate_rot = list(gate_obj.rotation_euler)  # euler angles are already in radians
+      # gate_rot_radians = list(map(radians, gate_rot))
       gate_scl = list(gate_obj.scale)
 
-      placement_data = (gate_pos, gate_rot_radians, gate_scl)
-
+      placement_data = (gate_pos, gate_rot, gate_scl)
+      # print(f"{gate_obj.name} Placement data: {placement_data}")
+      # print(f"Rot: {gate_rot}, Radians: {gate_rot_radians}")
       for port_unit in value:
         port_name = port_unit[0]
         port_pos = port_unit[1]
@@ -922,6 +947,7 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
         self.gate_port_abs_dict[(key, port_name)] = abs_port_pos
 
+    print("Port abs Dict:")
     print(self.gate_port_abs_dict)
 
 
@@ -1014,8 +1040,10 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       end_pos = self.gate_port_abs_dict[end_port]
 
       preview_connection = [start_pos, end_pos]
-      print(start_port, end_port)
-      print(preview_connection)
+      # print(start_port, end_port)
+      # print(preview_connection)
+      # for pos in preview_connection:
+      #   bpy.ops.mesh.primitive_cube_add(size=1, location=pos)
 
       # make pipe
       curve_data = bpy.data.curves.new(PREVIEW_PIPE_NAME, type = "CURVE")
@@ -1034,6 +1062,8 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       curve_object.data.bevel_depth = line_thickness
       curve_object.data.bevel_resolution = 2
 
+      bpy.context.scene.ui_property.preview_obj_list.append(curve_object)
+
 
 
 
@@ -1046,11 +1076,20 @@ class MESH_OT_delete_preview_connection(bpy.types.Operator):
   bl_label = "Delete Preview Connection"
 
   def execute(self, context):
-    for obj in bpy.context.scene.objects:
-      obj_name = obj.name
-      if PREVIEW_PIPE_NAME in obj_name:
-        bpy.data.objects.remove(obj)
+    # for obj in bpy.context.scene.objects:
+    #   obj_name = obj.name
+    #   if PREVIEW_PIPE_NAME in obj_name:
+    #     bpy.data.objects.remove(obj)
 
+    for obj in bpy.context.scene.ui_property.preview_obj_list:
+      try:
+        bpy.data.objects.remove(obj)
+      except ReferenceError:
+        self.report(
+          {"WARNING"},
+          "Preview Object Already Deleted"
+        )
+    bpy.context.scene.ui_property.preview_obj_list.clear()
     bpy.context.scene.ui_property.preview_is_shown = False
     return {'FINISHED'}
 
@@ -1206,15 +1245,16 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
     #
     progress_data["Pipe"] = {}
 
-    # save all objects in scene
+    # save only gate / free_end objects in scene
     for obj in bpy.context.scene.objects:
-      pos = list(obj.location)
-      rot = list(obj.rotation_euler)
-      scl = list(obj.scale)
-      gate_prop = obj.gate_property
-      gate_prop_list = [gate_prop.is_free_end, gate_prop.stl_file_path, gate_prop.json_file_path]
+      if obj.gate_property.stl_file_path:
+        pos = list(obj.location)
+        rot = list(obj.rotation_euler)
+        scl = list(obj.scale)
+        gate_prop = obj.gate_property
+        gate_prop_list = [gate_prop.is_free_end, gate_prop.stl_file_path, gate_prop.json_file_path]
 
-      progress_data["Objects"][obj.name] = [pos, rot, scl, gate_prop_list]
+        progress_data["Objects"][obj.name] = [pos, rot, scl, gate_prop_list]
 
 
     connect_prop = bpy.context.scene.connection_property
@@ -1241,7 +1281,6 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
     progress_data["Pipe"]["pipe_thickness"] = pipe_prop.pipe_thickness
     progress_data["Pipe"]["tip_length"] = pipe_prop.tip_length
     progress_data["Pipe"]["unit_dimention"] = pipe_prop.unit_dimention
-    progress_data["Pipe"]["show_pipe_preview"] = pipe_prop.show_pipe_preview
     progress_data["Pipe"]["add_stage"] = pipe_prop.add_stage
     progress_data["Pipe"]["stage_height"] = pipe_prop.stage_height
     progress_data["Pipe"]["stage_rim_size"] = pipe_prop.stage_rim_size
@@ -1250,7 +1289,7 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
     progress_data["Pipe"]["tip_stl_path"] = pipe_prop.tip_stl_path
 
 
-    print(json.dumps(progress_data, indent=2))
+    # print(json.dumps(progress_data, indent=2))
 
     with open(PROGRESS_FILE, 'w') as f:
       json.dump(progress_data, f, indent=2)
@@ -1285,9 +1324,17 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
     # reset addon, erase everything
     bpy.ops.mesh.reset_my_addon()
 
-    with open(progress_file_path, 'r') as f:
-      progress_data = json.load(f)
-      # print(progress_data)
+    try:
+      with open(progress_file_path, 'r') as f:
+        progress_data = json.load(f)
+        # print(progress_data)
+    except FileNotFoundError:
+      self.report(
+        {"ERROR"},
+        f"File Not Exist at path: {progress_file_path}"
+      )
+      return {"CANCELLED"}
+
 
     # load objects
     # none gate / free_end objects are ignored
@@ -1359,8 +1406,7 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
     pipe_prop.pipe_inner_radius = progress_data["Pipe"]["pipe_inner_radius"]
     pipe_prop.pipe_thickness = progress_data["Pipe"]["pipe_thickness"]
     pipe_prop.tip_length = progress_data["Pipe"]["tip_length"]
-    pipe_prop.unit_dimention = progress_data["Pipe"]["unit_dimention"] = pipe_prop.unit_dimention
-    pipe_prop.show_pipe_preview = progress_data["Pipe"]["show_pipe_preview"] = pipe_prop.show_pipe_preview
+    pipe_prop.unit_dimention = progress_data["Pipe"]["unit_dimention"]
     pipe_prop.add_stage = progress_data["Pipe"]["add_stage"]
     pipe_prop.stage_height = progress_data["Pipe"]["stage_height"]
     pipe_prop.stage_rim_size = progress_data["Pipe"]["stage_rim_size"]
@@ -1471,8 +1517,9 @@ class UIPropertyGroup(bpy.types.PropertyGroup):
   confirm_make_assembly: bpy.props.BoolProperty(default=False)
   preview_pipe_thickness: bpy.props.FloatProperty(default=.3, min=0, soft_max=1)
   preview_is_shown: bpy.props.BoolProperty(default=False)
-  assembly_is_made: bpy.props.BoolProperty(default=False)
+  preview_obj_list = []
   # propegation delay
+  assembly_is_made: bpy.props.BoolProperty(default=False)
   start_gate: bpy.props.PointerProperty(type=bpy.types.Object)
   end_gate: bpy.props.PointerProperty(type=bpy.types.Object)
   start_port: bpy.props.StringProperty(default="")
@@ -1515,7 +1562,8 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
     soft_max = 5
   )
 
-  show_pipe_preview: bpy.props.BoolProperty(default = False)
+  preview_obj_list = []
+  preview_is_shown: bpy.props.BoolProperty(default=False)
 
   add_stage: bpy.props.BoolProperty(default = False)
 
@@ -1824,7 +1872,10 @@ class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
       tip_col.prop(pipe_prop, "tip_offset", text="offset (cm)")
       tip_col.prop(pipe_prop, "tip_stl_path", text="stl file")
 
-    layout.operator("mesh.make_preview_pipe", text="Make Preview Tubing")
+    if pipe_prop.preview_is_shown:
+      layout.operator("mesh.delete_preview_pipe", text="Hide Preview Tubing")
+    else:
+      layout.operator("mesh.make_preview_pipe", text="Make Preview Tubing")
 
 
 
@@ -2038,6 +2089,7 @@ class_to_register = [
   MESH_OT_check_connection_selection,
   MESH_OT_make_assembly,
   MESH_OT_make_preview_pipe,
+  MESH_OT_delete_preview_pipe,
   MESH_OT_make_preview_connection,
   MESH_OT_delete_preview_connection,
   MESH_OT_choose_propergation_port,
