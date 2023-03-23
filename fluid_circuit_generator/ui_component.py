@@ -131,7 +131,9 @@ class MESH_OT_add_gate_object(bpy.types.Operator):
     imported_object.gate_property.is_free_end = is_free_end
 
     if is_free_end:
-      # self.obj_count += 1
+      # scale free end by dimention
+      dim = bpy.context.scene.pipe_property.unit_dimention
+      imported_object.scale = (dim, dim, dim)
       return {'FINISHED'}
     # check json file
     json_path = root + ".json"
@@ -539,6 +541,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
   def place_free_end_points(self):
     """Place free end objects"""
+    dim = bpy.context.scene.pipe_property.unit_dimention
     free_end_obj_list = []
     for gate_packet in self.gate_list:
       is_free_end = gate_packet[0]
@@ -552,6 +555,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
         #   obj.name = f"FreeEnd_{rounded_pos}"
         obj.name = name
         obj.location = pos
+        obj.scale = (dim, dim, dim)
         obj.gate_property.stl_file_path = FREE_END_STL
         root, ext = os.path.splitext(FREE_END_STL)
         json_path = root + ".json"
@@ -1875,21 +1879,21 @@ class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
     tip_col.ui_units_x = 1
 
     pipe_prop = bpy.context.scene.pipe_property
-    pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius", text="inner radius (cm)")
-    pipe_dimention_col.prop(pipe_prop, "pipe_thickness", text="thickness (cm)")
-    pipe_dimention_col.prop(pipe_prop, "unit_dimention", text="unit length (cm)")
+    pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius", text="inner radius (mm)")
+    pipe_dimention_col.prop(pipe_prop, "pipe_thickness", text="thickness (mm)")
+    pipe_dimention_col.prop(pipe_prop, "unit_dimention", text="unit length (mm)")
 
     stage_col.prop(pipe_prop, "add_stage", text="add stage block")
     add_stage = getattr(pipe_prop, "add_stage")
     if add_stage:
-      stage_col.prop(pipe_prop, "stage_height", text="height (cm)")
-      stage_col.prop(pipe_prop, "stage_rim_size", text="rim size (cm)")
+      stage_col.prop(pipe_prop, "stage_height", text="height (mm)")
+      stage_col.prop(pipe_prop, "stage_rim_size", text="rim size (mm)")
 
     # tip_col.prop(pipe_prop, "tip_length")
     tip_col.prop(pipe_prop, "add_custom_tip", text="add custom tip")
     add_custom_tip = getattr(pipe_prop, "add_custom_tip")
     if add_custom_tip:
-      tip_col.prop(pipe_prop, "tip_offset", text="offset (cm)")
+      tip_col.prop(pipe_prop, "tip_offset", text="offset (mm)")
       tip_col.prop(pipe_prop, "tip_stl_path", text="stl file")
 
     if pipe_prop.preview_is_shown:
@@ -1935,7 +1939,7 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
       if not preview_shown:
         col = row.column()
         col.operator("mesh.make_preview_connection", text="Preview Connecitons")
-        # col.prop(ui_prop, "preview_pipe_thickness", text="line thickness (cm)")
+        # col.prop(ui_prop, "preview_pipe_thickness", text="line thickness (mm)")
       else:
         row.operator("mesh.delete_preview_connection", text="Hide Preview")
 
