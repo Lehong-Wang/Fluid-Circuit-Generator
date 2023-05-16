@@ -170,6 +170,13 @@ class MESH_OT_add_gate_connection(bpy.types.Operator):
   def execute(self, context):
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
+    # if no active object, report error
+    if bpy.context.active_object is None:
+      self.report(
+        {'ERROR'},
+        "Select a gate object to add connection"
+      )
+      return {'CANCELLED'}
     # loop over all prop, display ones not all None
     for n in range(MAX_NUM_OF_CONNECTIONS):
       # row all empty
@@ -180,14 +187,19 @@ class MESH_OT_add_gate_connection(bpy.types.Operator):
         if prop_value is not None:
           prop_set_all_None = False
 
+      # add a gate at first non-empty row
       if prop_set_all_None:
         # make start_gate_n = active_object
         setattr(connect_prop, f"{name_list[0]}{n}", bpy.context.active_object)
+        # if free_end, and a sphere
+        if bpy.context.active_object.gate_property.is_free_end is True:
+          Helper.place_current_selection_sphere(list(bpy.context.active_object.location))
+
         return {'FINISHED'}
 
     self.report(
-      {"ERROR"},
-      f"Reached maxium number of connections (currently set to {MAX_NUM_OF_CONNECTIONS})"
+      {'ERROR'},
+      f"Reached maxium number of connections (currently set to {MAX_NUM_OF_CONNECTIONS})\nChange \"MAX_NUM_OF_CONNECTIONS\" variable in code to add more connections"
     )
     return {'CANCELLED'}
 
@@ -207,13 +219,24 @@ class MESH_OT_choose_connection_port(bpy.types.Operator):
   row_index: bpy.props.IntProperty(default=0)
   gate_index: bpy.props.IntProperty(default=0)
   port_name: bpy.props.StringProperty(default="")
+  selected_gate_name: bpy.props.StringProperty(default="")
 
   def execute(self, context):
     print(f"Choose row {self.row_index}, gate {self.gate_index}, port {self.port_name}")
-    connection_dict = bpy.context.scene.connection_property.connection_dict
+    connect_prop = bpy.context.scene.connection_property
+    connection_dict = connect_prop.connection_dict
     connection_dict[(self.row_index, self.gate_index)] = self.port_name
     # self.filter_free_port_from_dict()
     # print(connection_dict)
+
+    # get current selected gate by name
+    gate_obj = bpy.data.objects[self.selected_gate_name]
+    print(f"Button {self.row_index, self.gate_index}, obj: {gate_obj}")
+    if gate_obj is None:
+      return {'CANCELLED'}
+    # place sphere at selected port
+    select_pos = Helper.get_abs_port_pos(gate_obj, self.port_name)
+    Helper.place_current_selection_sphere(select_pos)
 
     return {'FINISHED'}
 
@@ -246,7 +269,317 @@ class MESH_OT_cancel_connection_port(bpy.types.Operator):
       )
       return {'CANCELLED'}
     # print(connection_dict)
+
+    Helper.remove_current_selection_sphere()
+
     return {'FINISHED'}
+
+
+
+
+
+class Helper():
+  """
+  Helper class
+  Contains function for calculating port transformations and checking opsition
+  """
+
+  @staticmethod
+  def calculate_abs_pos(placement_data, port_pos):
+    """
+    Helper function to calculate the absolute port position
+    return pos as a List
+    """
+    # placement_data: ((loc), (rot), (scl))
+
+    # Linear Algibra, Euler rotation
+    x,y,z = placement_data[1]
+    # print("\n\nX,Y,Z to rotate",x,y,z)
+    x_matrix = np.array([[1, 0, 0],\
+                          [0, cos(x), -sin(x)],\
+                          [0, sin(x), cos(x)]])
+
+    y_matrix = np.array([[cos(y), 0, sin(y)],\
+                          [0, 1, 0],\
+                          [-sin(y), 0, cos(y)]])
+
+    z_matrix = np.array([[cos(z), -sin(z), 0],\
+                          [sin(z), cos(z), 0],\
+                          [0, 0, 1]])
+
+    # scale -> ratate -> move
+    scaled_pos = list(map(lambda a,b: a*b, port_pos, placement_data[2]))
+
+    vector_before = np.array([scaled_pos[0], scaled_pos[1], scaled_pos[2]])
+    vector_after = np.dot(np.dot(z_matrix, y_matrix), np.dot(x_matrix, vector_before))
+    rotated_pos = list(vector_after)
+
+    moved_pos = list(map(lambda a,b: a+b, rotated_pos, placement_data[0]))
+    rounded_pos = list(map(lambda a: round(a,2), moved_pos))
+
+    print(f"Port Pos: {port_pos} -> {rounded_pos}")
+    return rounded_pos
+
+
+  @staticmethod
+  def get_relative_port_pos(gate_obj, port_name):
+    """return port ops from json"""
+    json_file = gate_obj.gate_property.json_file_path
+    with open(json_file, 'r') as f:
+      json_data = json.load(f)
+      port_pos = json_data["Port Info"][port_name]
+
+    return port_pos
+
+  @staticmethod
+  def get_abs_port_pos(gate_obj, port_name):
+    """return transformed port pos"""
+
+    gate_pos = tuple(gate_obj.location)
+    gate_rotation = tuple(gate_obj.rotation_euler)
+    gate_scale = tuple(gate_obj.scale)
+    print(f"Logic Gate: {gate_obj}", end="\t")
+
+    placement_data = (gate_pos, gate_rotation, gate_scale)
+    relative_port_pos = Helper.get_relative_port_pos(gate_obj, port_name)
+
+    abs_port_pos = Helper.calculate_abs_pos(placement_data, relative_port_pos)
+    return abs_port_pos
+
+
+
+  @staticmethod
+  def check_port_valid(gate_obj, port_name=None):
+    """
+    Given gate_obj and port_name(optional)
+    check if port position is valid (in first corrdinate and one unit above ground)
+      if port_name is not given, check all ports of gate
+    return Error message string or None for check passed
+    """
+
+    unit_dim = bpy.context.scene.pipe_property.unit_dimention
+
+    # free end
+    if gate_obj.gate_property.is_free_end:
+      free_end_pos = tuple(gate_obj.location)
+      free_end_pos = tuple(map(lambda x: round(x,2), free_end_pos))
+
+      if min(free_end_pos) < 0:
+        return f"Free End: {gate_obj.name} is not in the first coordinate, location {free_end_pos}\nAll ports must have location(x,y,z) >= 0"
+
+      if free_end_pos[2] < unit_dim:
+        return f"Free End: {gate_obj.name}, is too close to ground,  location: {free_end_pos}\nAll ports much be more than 1 unit length({unit_dim}mm) above ground."
+
+
+    # logic gate
+    else:
+      port_name_list = []
+      if port_name is None:
+        json_file = gate_obj.gate_property.json_file_path
+        with open(json_file, 'r') as f:
+          json_data = json.load(f)
+          port_pos = json_data["Port Info"]
+          port_name_list = list(port_pos.keys())
+      else:
+        port_name_list = [port_name]
+
+      for this_port_name in port_name_list:
+        port_pos = Helper.get_abs_port_pos(gate_obj, this_port_name)
+
+        if min(port_pos) < 0:
+          return f"Gate: {gate_obj.name}, Port: {this_port_name} is not in the first coordinate, location: {port_pos}\nAll ports must have location(x,y,z) >= 0"
+
+        if port_pos[2] < unit_dim:
+          return f"Gate: {gate_obj.name}, Port: {this_port_name} is too close to ground,  location: {port_pos}\nAll ports much be more than 1 unit length({unit_dim}mm) above ground."
+
+    return None
+
+
+
+
+  @staticmethod
+  def place_current_selection_sphere(select_pos:list):
+    """Place a sphere at selected port"""
+    connect_prop = bpy.context.scene.connection_property
+
+    Helper.remove_current_selection_sphere()
+
+    select_scale = bpy.context.scene.pipe_property.unit_dimention
+    bpy.ops.mesh.primitive_uv_sphere_add(
+      radius=select_scale,
+      location=select_pos,
+      segments=16, ring_count=8)
+
+    bpy.context.active_object.name = "Current Selection"
+    bpy.context.active_object.display_type = 'WIRE'
+    connect_prop.select_sphere_obj = bpy.context.active_object
+    print(f"Sphere Obj: {connect_prop.select_sphere_obj}")
+
+
+  @staticmethod
+  def remove_current_selection_sphere():
+    """Remove Sphere"""
+    connect_prop = bpy.context.scene.connection_property
+    # Delete previous selection sphere
+    sphere_obj = connect_prop.select_sphere_obj
+    if sphere_obj is not None:
+      if sphere_obj.name in bpy.data.objects:
+        bpy.data.objects.remove(sphere_obj)
+    connect_prop.select_sphere_obj = None
+
+
+
+
+
+
+class MESH_OT_check_connection_selection(bpy.types.Operator):
+  """
+  Helper Operator
+  Check if user input for connection is complete and valid
+  Called by other operators
+  """
+  bl_idname = "mesh.check_connection_selection"
+  bl_label = "Check Connection Selection"
+
+  def execute(self, context):
+
+    if not self.check_gate_selected():
+      return {'CANCELLED'}
+    if not self.check_port_select():
+      return {'CANCELLED'}
+    if not self.check_port_position():
+      # print("\n\n\nCheck Port Positsion Failed\n\n\n")
+      return {'CANCELLED'}
+    return {'FINISHED'}
+
+
+
+  def check_gate_selected(self):
+    """
+    Check if full rows of gate are selected
+    """
+    connect_prop = bpy.context.scene.connection_property
+    ui_prop = bpy.context.scene.ui_property
+
+    name_list = connect_prop.generic_gate_name_list
+    error_list = ui_prop.error_message_list
+
+    something_selected = False
+
+    for n in range(MAX_NUM_OF_CONNECTIONS):
+      row_all_selected = True
+      row_all_empty = True
+
+      for gate_name in name_list:
+        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
+        # none gate object selected
+        if gate_obj and gate_obj.gate_property.stl_file_path == "":
+          self.report(
+            {'ERROR'},
+            "Invalid object is selected"
+          )
+          # # operator that are not directly called can't show pop up error message
+          # # store error in ui_prop, and the callee will report it
+          # # However, still need to report error message to generate RuntimeError
+          error_list.append("Invalid object is selected")
+          return False
+        if gate_obj:
+          row_all_empty = False
+          something_selected = True
+        else:
+          row_all_selected = False
+      # partially selected
+      if row_all_empty == row_all_selected:
+        self.report(
+          {'ERROR'},
+          "Gate Object Not Properly Selected"
+        )
+        error_list.append("Gate Object Not Properly Selected")
+        return False
+    if not something_selected:
+      self.report(
+        {'ERROR'},
+        "No Valid Connection"
+      )
+      error_list.append("No Valid Connection")
+    print("Gate Properly Selected")
+    return True
+
+
+
+  def check_port_select(self):
+    """
+    Check of Logic Gate object have port selected
+    """
+    connect_prop = bpy.context.scene.connection_property
+    error_list = bpy.context.scene.ui_property.error_message_list
+    name_list = connect_prop.generic_gate_name_list
+    connection_dict = connect_prop.connection_dict
+
+    self.filter_free_port_from_dict()
+
+    for n in range(MAX_NUM_OF_CONNECTIONS):
+
+      for i,gate_name in enumerate(name_list):
+        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
+        # not free end
+        if gate_obj and not gate_obj.gate_property.is_free_end:
+          key = (n,i)
+          if not key in connection_dict:
+            self.report(
+              {'ERROR'},
+              "Port Not Fully Selected"
+            )
+            error_list.append("Port Not Fully Selected")
+            return False
+    print("Port Properly Selected")
+    return True
+
+
+  def filter_free_port_from_dict(self):
+    """
+    Deals with a paticular bug where
+      user first finished choosing gate and port,
+      but then turn the gate to a free port and the port info is still there
+    This function looks for that and delete them
+    """
+    connect_prop = bpy.context.scene.connection_property
+    connection_dict = connect_prop.connection_dict
+    name_list = connect_prop.generic_gate_name_list
+    to_pop_key_list = []
+    for key in connection_dict.keys():
+      n,i = key
+      gate_obj = getattr(connect_prop, f"{name_list[i]}{n}")
+      if gate_obj and gate_obj.gate_property.is_free_end:
+        to_pop_key_list.append(key)
+    for key in to_pop_key_list:
+      connection_dict.pop(key)
+
+
+  def check_port_position(self):
+    """
+    Check if all ports are in the first coordinate
+    If not, throw a warning
+    """
+
+    connect_prop = bpy.context.scene.connection_property
+    name_list = connect_prop.generic_gate_name_list
+    error_list = bpy.context.scene.ui_property.error_message_list
+
+    for n in range(MAX_NUM_OF_CONNECTIONS):
+      for i,gate_name in enumerate(name_list):
+        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
+        if gate_obj is not None:
+            # msg is None if no error
+            msg = Helper.check_port_valid(gate_obj)
+            # print(f"\nHelper.check_port_valid\nError Message:\n{msg}\n")
+            if msg is not None:
+              self.report({'ERROR'}, msg)
+              error_list.append(msg)
+              return False
+
+    return True
+
 
 
 
@@ -286,8 +619,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
       error_list.clear()
       return {'CANCELLED'}
 
-    if not self.get_all_gates():
-      return {'CANCELLED'}
+    self.get_all_gates()
     self.get_all_connections()
 
     # remove connection selection
@@ -301,7 +633,7 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     stage_obj_list = []
     tip_obj_list = []
 
-    print("\n Positioning all gates")
+    print("\nPositioning all gates")
     gate_obj_list = self.place_all_gates()
     self.add_all_connections()
 
@@ -348,28 +680,21 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     connect_prop = bpy.context.scene.connection_property
     name_list = connect_prop.generic_gate_name_list
 
-    print("In function get_all_gates")
     recorded_gate_list = []
 
     for n in range(MAX_NUM_OF_CONNECTIONS):
       for gate_name in name_list:
         gate_obj = getattr(connect_prop, f"{gate_name}{n}")
         # not recorded
-        if gate_obj and not (gate_obj in recorded_gate_list):
+        if gate_obj is not None and not (gate_obj in recorded_gate_list):
           # free end
           if gate_obj.gate_property.is_free_end:
             # add free end
             free_end_name = gate_obj.name
             free_end_pos = tuple(gate_obj.location)
             print(f"Free end: {gate_obj}, pos: {free_end_pos}")
-            record_unit = (True, free_end_name, free_end_pos)
 
-            if min(free_end_pos) < 0:
-              self.report(
-                {'ERROR'},
-                f"Free End: {gate_obj.name} is not in the first coordinate, location {free_end_pos}"
-              )
-              return False
+            record_unit = (True, free_end_name, free_end_pos)
 
           # logic gate
           else:
@@ -380,74 +705,14 @@ class MESH_OT_make_assembly(bpy.types.Operator):
             gate_name = gate_obj.name
             print(f"Logic Gate: {gate_obj}, name: {gate_name}, pos: {gate_pos}, rotation: {gate_rotation}, scale: {gate_scale}")
             print(f"\tStl: {stl_path}")
+
             record_unit = (False, gate_name, stl_path, gate_pos, gate_rotation, gate_scale)
 
-            if not self.validate_gate_port_pos(gate_obj):
-              return False
+
           self.gate_list.append(record_unit)
           recorded_gate_list.append(gate_obj)
 
     print(self.gate_list)
-    return True
-
-
-
-  def validate_gate_port_pos(self, gate_obj):
-    """Check if all ports are in first coordinate"""
-    gate_pos = list(gate_obj.location)
-    gate_rot = list(gate_obj.rotation_euler)
-    gate_rot_radians = list(map(radians, gate_rot))
-    gate_scl = list(gate_obj.scale)
-    placement_data = (gate_pos, gate_rot_radians, gate_scl)
-
-    json_file = gate_obj.gate_property.json_file_path
-    with open(json_file, 'r') as f:
-      json_data = json.load(f)
-      port_dict = json_data["Port Info"]
-      for port_name,port_pos in port_dict.items():
-        abs_pos = self.calculate_abs_pos(placement_data, port_pos)
-        if min(abs_pos) < 0:
-          self.report(
-            {'ERROR'},
-            f"Gate: {gate_obj.name}, Port: {port_name} is not in the first coordinate, location: {abs_pos}"
-          )
-          return False
-    return True
-
-
-  # apply transformations to relative port pos
-  def calculate_abs_pos(self, placement_data, port_pos):
-    """
-    Helper function to calculate the absolute port position
-    """
-
-    # Linear Algibra, Euler rotation
-    x,y,z = placement_data[1]
-    # print("\n\nX,Y,Z to rotate",x,y,z)
-    x_matrix = np.array([[1, 0, 0],\
-                          [0, cos(x), -sin(x)],\
-                          [0, sin(x), cos(x)]])
-
-    y_matrix = np.array([[cos(y), 0, sin(y)],\
-                          [0, 1, 0],\
-                          [-sin(y), 0, cos(y)]])
-
-    z_matrix = np.array([[cos(z), -sin(z), 0],\
-                          [sin(z), cos(z), 0],\
-                          [0, 0, 1]])
-
-    # scale -> ratate -> move
-    scaled_pos = list(map(lambda a,b: a*b, port_pos, placement_data[2]))
-
-    vector_before = np.array([scaled_pos[0], scaled_pos[1], scaled_pos[2]])
-    vector_after = np.dot(np.dot(z_matrix, y_matrix), np.dot(x_matrix, vector_before))
-    rotated_pos = list(vector_after)
-
-    moved_pos = list(map(lambda a,b: a+b, rotated_pos, placement_data[0]))
-    rounded_pos = list(map(lambda a: round(a,2), moved_pos))
-
-    print(f"Port Pos: {port_pos} -> {rounded_pos}")
-    return rounded_pos
 
 
 
@@ -567,128 +832,6 @@ class MESH_OT_make_assembly(bpy.types.Operator):
 
 
 
-class MESH_OT_check_connection_selection(bpy.types.Operator):
-  """
-  Helper Operator
-  Check if user input for connection is complete
-  Called by other operators
-  """
-  bl_idname = "mesh.check_connection_selection"
-  bl_label = "Check Connection Selection"
-
-  def execute(self, context):
-
-    if not self.check_gate_selected():
-      return {'CANCELLED'}
-    if not self.check_port_select():
-      return {'CANCELLED'}
-
-    return {'FINISHED'}
-
-
-
-
-  def check_gate_selected(self):
-    """
-    Check if full rows of gate are selected
-    """
-    connect_prop = bpy.context.scene.connection_property
-    ui_prop = bpy.context.scene.ui_property
-
-    name_list = connect_prop.generic_gate_name_list
-    error_list = ui_prop.error_message_list
-
-    something_selected = False
-
-    for n in range(MAX_NUM_OF_CONNECTIONS):
-      row_all_selected = True
-      row_all_empty = True
-
-      for gate_name in name_list:
-        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
-        # none gate object selected
-        if gate_obj and gate_obj.gate_property.stl_file_path == "":
-          self.report(
-            {'ERROR'},
-            "Invalid object is selected"
-          )
-          # operator that are not directly called can't show pop up error message
-          # store error in ui_prop, and the callee will report it
-          error_list.append("Invalid object is selected")
-          return False
-        if gate_obj:
-          row_all_empty = False
-          something_selected = True
-        else:
-          row_all_selected = False
-      # partially selected
-      if row_all_empty == row_all_selected:
-        self.report(
-          {'ERROR'},
-          "Gate Object Not Properly Selected"
-        )
-        error_list.append("Gate Object Not Properly Selected")
-        return False
-    if not something_selected:
-      self.report(
-        {'ERROR'},
-        "No Valid Connection"
-      )
-      error_list.append("No Valid Connection")
-    print("Gate Properly Selected")
-    return True
-
-
-
-  def check_port_select(self):
-    """
-    Check of Logic Gate object have port selected
-    """
-    connect_prop = bpy.context.scene.connection_property
-    error_list = bpy.context.scene.ui_property.error_message_list
-    name_list = connect_prop.generic_gate_name_list
-    connection_dict = connect_prop.connection_dict
-
-    self.filter_free_port_from_dict()
-
-    for n in range(MAX_NUM_OF_CONNECTIONS):
-
-      for i,gate_name in enumerate(name_list):
-        gate_obj = getattr(connect_prop, f"{gate_name}{n}")
-        # not free end
-        if gate_obj and not gate_obj.gate_property.is_free_end:
-          key = (n,i)
-          if not key in connection_dict:
-            self.report(
-              {'ERROR'},
-              "Port Not Fully Selected"
-            )
-            error_list.append("Port Not Fully Selected")
-            return False
-    print("Port Properly Selected")
-    return True
-
-
-  def filter_free_port_from_dict(self):
-    """
-    Deals with a paticular bug where
-      user first finished choosing gate and port,
-      but then turn the gate to a free port and the port info is still there
-    This function looks for that and delete them
-    """
-    connect_prop = bpy.context.scene.connection_property
-    connection_dict = connect_prop.connection_dict
-    name_list = connect_prop.generic_gate_name_list
-    to_pop_key_list = []
-    for key in connection_dict.keys():
-      n,i = key
-      gate_obj = getattr(connect_prop, f"{name_list[i]}{n}")
-      if gate_obj and gate_obj.gate_property.is_free_end:
-        to_pop_key_list.append(key)
-    for key in to_pop_key_list:
-      connection_dict.pop(key)
-
-
 
 
 
@@ -721,19 +864,6 @@ class MESH_OT_make_preview_pipe(bpy.types.Operator):
     stage_name = "Test Stage"
     tip_name = "Test Tip"
 
-    # # delete previous preview objects
-    # try:
-    #   bpy.data.objects.remove(bpy.data.objects[pipe_name])
-    # except KeyError:
-    #   pass
-    # try:
-    #   bpy.data.objects.remove(bpy.data.objects[stage_name])
-    # except KeyError:
-    #   pass
-    # try:
-    #   bpy.data.objects.remove(bpy.data.objects[tip_name])
-    # except KeyError:
-    #   pass
 
     # make pipe
     curve_data = bpy.data.curves.new(pipe_name, type = "CURVE")
@@ -874,8 +1004,16 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
 
     try:
       bpy.ops.mesh.check_connection_selection()
-    except RuntimeError:
       error_list = bpy.context.scene.ui_property.error_message_list
+
+      print(f"\nFinished check_connection_selection\n{error_list}\n")
+    except RuntimeError:
+
+
+      error_list = bpy.context.scene.ui_property.error_message_list
+
+      # print(f"\ncheck_connection_selection failed\n{error_list}\n")
+
       for message in error_list:
         self.report({"ERROR"}, message)
       error_list.clear()
@@ -942,6 +1080,7 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       gate_rot = list(gate_obj.rotation_euler)  # euler angles are already in radians
       # gate_rot_radians = list(map(radians, gate_rot))
       gate_scl = list(gate_obj.scale)
+      calculate_abs_pos = Helper.calculate_abs_pos
 
       placement_data = (gate_pos, gate_rot, gate_scl)
       # print(f"{gate_obj.name} Placement data: {placement_data}")
@@ -949,48 +1088,13 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       for port_unit in value:
         port_name = port_unit[0]
         port_pos = port_unit[1]
-        abs_port_pos = self.calculate_abs_pos(placement_data, port_pos)
+        abs_port_pos = calculate_abs_pos(placement_data, port_pos)
 
         self.gate_port_abs_dict[(key, port_name)] = abs_port_pos
 
     print("Port abs Dict:")
     print(self.gate_port_abs_dict)
 
-
-
-  # apply transformations to relative port pos
-  def calculate_abs_pos(self, placement_data, port_pos):
-    """
-    Helper function to calculate the absolute port position
-    """
-
-    # Linear Algibra, Euler rotation
-    x,y,z = placement_data[1]
-    # print("\n\nX,Y,Z to rotate",x,y,z)
-    x_matrix = np.array([[1, 0, 0],\
-                          [0, cos(x), -sin(x)],\
-                          [0, sin(x), cos(x)]])
-
-    y_matrix = np.array([[cos(y), 0, sin(y)],\
-                          [0, 1, 0],\
-                          [-sin(y), 0, cos(y)]])
-
-    z_matrix = np.array([[cos(z), -sin(z), 0],\
-                          [sin(z), cos(z), 0],\
-                          [0, 0, 1]])
-
-    # scale -> ratate -> move
-    scaled_pos = list(map(lambda a,b: a*b, port_pos, placement_data[2]))
-
-    vector_before = np.array([scaled_pos[0], scaled_pos[1], scaled_pos[2]])
-    vector_after = np.dot(np.dot(z_matrix, y_matrix), np.dot(x_matrix, vector_before))
-    rotated_pos = list(vector_after)
-
-    moved_pos = list(map(lambda a,b: a+b, rotated_pos, placement_data[0]))
-    rounded_pos = list(map(lambda a: round(a,2), moved_pos))
-
-    print(f"Port Pos: {port_pos} -> {rounded_pos}")
-    return rounded_pos
 
 
 
@@ -1069,6 +1173,8 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
       curve_object.data.bevel_resolution = 2
 
       bpy.context.scene.ui_property.preview_obj_list.append(curve_object)
+
+      Helper.remove_current_selection_sphere()
 
 
 
@@ -1278,7 +1384,9 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
       # convert (n,i) to index
       # parse by i = index % len, n = index // len
       index = n * len(name_list) + i
-      progress_data["Connection"][index] = (current_gate_obj.name, current_port_name)
+      # Filter ghost ports (gate deleted, post still there)
+      if current_gate_obj is not None:
+        progress_data["Connection"][index] = (current_gate_obj.name, current_port_name)
 
     # loop again to get free_ends
     # do this because when you choose port, then change object to free_end
@@ -1463,9 +1571,9 @@ def get_addon_dir():
   return str(directory)
 
 ADDON_DIR = get_addon_dir() + "/"
-GATE_LIBRARY_PATH = ADDON_DIR + "/Gate_Library/"
+GATE_LIBRARY_PATH = ADDON_DIR + "/Val_Library/"
 FREE_END_STL = GATE_LIBRARY_PATH + "free_end_pointer.stl"
-DEFAULT_TIP_STL = GATE_LIBRARY_PATH + "pipe_tip.stl"
+DEFAULT_TIP_STL = GATE_LIBRARY_PATH + "press_fit_tip.stl"
 PROGRESS_FILE = ADDON_DIR + "saved_progress.json"
 
 class GatePropertyGroup(bpy.types.PropertyGroup):
@@ -1502,6 +1610,9 @@ class ConnectionPropertyGroup(bpy.types.PropertyGroup):
   free_end_obj_list = []
   stage_obj_list = []
   tip_obj_list = []
+  # a sphere object that marks the currently selected port pos
+  select_sphere_obj: bpy.props.PointerProperty(type=bpy.types.Object)
+  # select_gate_obj: bpy.props.PointerProperty(type=bpy.types.Object)
 
 
 def flip_is_free_end(self, context):
@@ -1566,14 +1677,14 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
   Stores property related to pipe settings
   """
   pipe_inner_radius: bpy.props.FloatProperty(
-    default = .2,
+    default = 1.6,
     min = 0,
-    soft_max = 1
+    soft_max = 3
   )
   pipe_thickness: bpy.props.FloatProperty(
-    default = .15,
+    default = 1.4,
     min = 0.01,
-    soft_max = 1
+    soft_max = 3
   )
   tip_length: bpy.props.FloatProperty(
     default = 1,
@@ -1581,9 +1692,9 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
     soft_max = 2
   )
   unit_dimention: bpy.props.IntProperty(
-    default = 1,
+    default = 7,
     min = 1,
-    soft_max = 5
+    soft_max = 10
   )
 
   preview_obj_list = []
@@ -1592,22 +1703,22 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
   add_stage: bpy.props.BoolProperty(default = False)
 
   stage_height: bpy.props.FloatProperty(
-    default = .5,
+    default = 3,
     min = 0,
     soft_max = 5
   )
   stage_rim_size: bpy.props.FloatProperty(
-    default = .5,
+    default = 3,
     min = 0,
-    soft_max = 3
+    soft_max = 5
   )
 
   add_custom_tip: bpy.props.BoolProperty(default = False)
 
   tip_offset: bpy.props.FloatProperty(
-    default = .1,
+    default = 3,
     min = 0,
-    soft_max = 1
+    soft_max = 5
   )
   tip_stl_path: bpy.props.StringProperty(
     subtype = 'FILE_PATH',
@@ -1824,6 +1935,9 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
             port_button.row_index = n
             port_button.gate_index = i
             port_button.port_name = port_name
+            port_button.selected_gate_name = gate_obj.name
+            # connect_prop.select_gate_obj = gate_obj
+            # print(f"connect_prop.select_gate_obj: {connect_prop.select_gate_obj}")
             current_ui_height += 1
 
         else:
