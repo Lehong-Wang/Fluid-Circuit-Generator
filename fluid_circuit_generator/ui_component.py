@@ -37,7 +37,7 @@ bl_info = {
 
 
 # change the maxium number of connection allowed here
-MAX_NUM_OF_CONNECTIONS = 100
+MAX_NUM_OF_CONNECTIONS = 500
 
 
 ############################################################################
@@ -1051,7 +1051,7 @@ class MESH_OT_make_preview_connection(bpy.types.Operator):
         have_valid_gate = True
 
         json_path = obj.gate_property.json_file_path
-
+        # print(obj, "\n\n", stl_path,"\n", json_path,"\n", FREE_END_STL)
         with open(json_path, 'r') as f:
           json_data = json.load(f)
           port_list = list(json_data["Port Info"].items())
@@ -1199,7 +1199,7 @@ class MESH_OT_delete_preview_connection(bpy.types.Operator):
       except ReferenceError:
         self.report(
           {"WARNING"},
-          "Preview Object Already Deleted"
+          f"Preview Object: {obj} Already Deleted"
         )
     bpy.context.scene.ui_property.preview_obj_list.clear()
     bpy.context.scene.ui_property.preview_is_shown = False
@@ -1442,6 +1442,7 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
 
   def execute(self, context):
     ui_prop = bpy.context.scene.ui_property
+    connect_prop = bpy.context.scene.connection_property
     progress_file_path = ui_prop.progress_file_path
 
     root,ext = os.path.splitext(progress_file_path)
@@ -1452,8 +1453,8 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
       )
       return {"CANCELLED"}
 
-    # reset addon, erase everything
-    bpy.ops.mesh.reset_my_addon()
+    # # reset addon, erase everything
+    # bpy.ops.mesh.reset_my_addon()
 
     try:
       with open(progress_file_path, 'r') as f:
@@ -1466,10 +1467,33 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
       )
       return {"CANCELLED"}
 
+    # get existing name
+    existing_obj_name = []
+    for obj in bpy.data.objects:
+      existing_obj_name.append(obj.name)
+
+    # get existing number of connections
+    n_lines = 0
+    # check if a line of connection selection is empty
+    def connect_line_is_empty(n_lines):
+      connect_var_name = []
+      for var in connect_prop.generic_gate_name_list:
+        connect_var_name.append(f"{var}{n_lines}")
+      is_empty = True
+      # print("Var_names:", connect_var_name)
+      for var in connect_var_name:
+        if connect_prop.get(var).__class__ is bpy.types.Object:
+          is_empty = False
+      return is_empty
+
+    while not connect_line_is_empty(n_lines) and n_lines < MAX_NUM_OF_CONNECTIONS:
+      n_lines += 1
+    print("Num of existing connections:\n", n_lines)
 
     # load objects
     # none gate / free_end objects are ignored
     loaded_obj_dict = progress_data["Objects"]
+    change_name_dict = {}
     for key,value in loaded_obj_dict.items():
       obj_name = key
       obj_pos = value[0]
@@ -1491,7 +1515,7 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
           return {"CANCELLED"}
         # load object properties
         imported_object = bpy.context.active_object
-        imported_object.name = obj_name
+        # imported_object.name = obj_name
         imported_object.location = obj_pos
         imported_object.rotation_euler = obj_rot
         imported_object.scale = obj_scl
@@ -1499,10 +1523,20 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
         imported_object.gate_property.stl_file_path = obj_stl_file_path
         imported_object.gate_property.json_file_path = obj_json_file_path
 
+        # avoid name collision
+        ii = 0
+        changed_obj_name = obj_name
+        while changed_obj_name in existing_obj_name:
+          changed_obj_name = f"{obj_name}_{ii}"
+          ii += 1
+        if ii > 0:
+          change_name_dict[obj_name] = changed_obj_name
+
+        imported_object.name = changed_obj_name
+
+
 
     # load connections
-    connect_prop = bpy.context.scene.connection_property
-
     loaded_connect_dict = progress_data["Connection"]
     # get generic_gate_name_list
     connect_prop.generic_gate_name_list = loaded_connect_dict["Name List"]
@@ -1511,10 +1545,15 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
 
     for key,value in loaded_connect_dict.items():
       index = int(key)
-      n = index // len(name_list)
+      n = index // len(name_list) + n_lines   # append to existing connections
       i = index % len(name_list)
-      gate_name = value[0]
-      port_name = value[1]
+
+      connection_gate_name, connection_port_name = value
+      if connection_gate_name in change_name_dict:
+        connection_gate_name = change_name_dict[connection_gate_name]
+
+      gate_name = connection_gate_name
+      port_name = connection_port_name
 
       try:
         gate_obj = bpy.data.objects[gate_name]
@@ -1571,7 +1610,7 @@ def get_addon_dir():
   return str(directory)
 
 ADDON_DIR = get_addon_dir() + "/"
-GATE_LIBRARY_PATH = ADDON_DIR + "/Val_Library/"
+GATE_LIBRARY_PATH = ADDON_DIR + "Val_Library/"
 FREE_END_STL = GATE_LIBRARY_PATH + "free_end_pointer.stl"
 DEFAULT_TIP_STL = GATE_LIBRARY_PATH + "press_fit_tip.stl"
 PROGRESS_FILE = ADDON_DIR + "saved_progress.json"
