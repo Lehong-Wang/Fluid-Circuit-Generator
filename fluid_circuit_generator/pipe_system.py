@@ -367,6 +367,15 @@ class PipeSystem:
       junction_sphere.select_set(True)
       bpy.context.view_layer.objects.active = junction_sphere
       bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
+
+      # remesh to aviod random boolean cut errors
+      junction_modifier_name = "Remesh"
+      junction_sphere.modifiers.new(junction_modifier_name, "REMESH")
+      junction_sphere.modifiers[junction_modifier_name].mode = "VOXEL"
+      junction_sphere.modifiers[junction_modifier_name].voxel_size = .1 * self.pipe_dimention[0]
+      bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
+      # print("Applying Remesh", .1 * self.pipe_dimention[0])
+
       # cut from other pipes
       for key,value in connection_object_dict.items():
         pipe = value[1]

@@ -1739,20 +1739,20 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
   preview_obj_list = []
   preview_is_shown: bpy.props.BoolProperty(default=False)
 
-  add_stage: bpy.props.BoolProperty(default = False)
+  add_stage: bpy.props.BoolProperty(default = True)
 
   stage_height: bpy.props.FloatProperty(
-    default = 3,
+    default = .5,
     min = 0,
     soft_max = 5
   )
   stage_rim_size: bpy.props.FloatProperty(
-    default = 3,
+    default = 5,
     min = 0,
     soft_max = 5
   )
 
-  add_custom_tip: bpy.props.BoolProperty(default = False)
+  add_custom_tip: bpy.props.BoolProperty(default = True)
 
   tip_offset: bpy.props.FloatProperty(
     default = 3,
