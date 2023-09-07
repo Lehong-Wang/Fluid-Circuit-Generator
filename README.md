@@ -2,7 +2,7 @@
 
 # Fluid Circuit Generator
 
-This prject is a Blender addon tool to automatically generate tubing for fludic circuits.
+This prject is a Blender addon tool to automatically generate tubing network for fludic circuits.
 
 ## Requirements
 
