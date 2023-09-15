@@ -2,17 +2,28 @@
 
 # Fluid Circuit Generator
 
-This prject is a Blender addon tool to automatically generate tubing network for fludic circuits.
+This prject is a Blender addon tool to help design Fluidic Networks.
+
+The software is designed to be part of a workflow for fabrication of macro-fluidic circuits. 
+Where, instead of manually wiring logic components, designers can feed their design into the software and generate the connections among as a 3D printable fluidic network model.
+The logic components can be put onto the network to form a functional fluidic circuit. (shown below)
+
+![](pictures/process.png)
+
+
+A video tutorial for using the software can be found
+[here](https://youtu.be/gbxtxueENJk).
+
 
 ## Requirements
 
-* [Blender version 3.2](https://www.blender.org/download/)
+* [Blender version 3.2](https://download.blender.org/release/Blender3.2/)
 
 
 ## Installation
 
 * Download this repository. 
-  * What you need is the fluid_circuit_generator.zip file. You can discard the rest.
+  * What you need is the fluid_circuit_generator.zip file inside the repository folder. You can discard the rest.
   * DO NOT unzip the file. Blender will automatically extract the contents when it installs addons.
 * In Blender, go to Edit -> Preferences -> Add-ons
   * This window manages the addons installed in your Blender
@@ -25,17 +36,25 @@ This prject is a Blender addon tool to automatically generate tubing network for
 ![](pictures/side_bar.png)
 
 
-## Instructions
+## User Mannul
+
+### Basic Usecase
 
 1. In the Main Panel, "Reset Addon" button should be pressed after each finalized assembly is generated and before you make a new one. It deletes everything.
-2. In the Add Component Panel, you can choose to add a component for your circuit. Choose what you want to add and press the "Add Object" Button.
-    * Currently, we have Logic Gate and Free End (outlets to air).
-    * Logic Gates needs to have a stl file and a json file with the same name. There is a sample Logic Gate Library provided within the addon.
+2. In the Add Component Panel, you can choose to add a component for your circuit. Choose what circuit component you want to add and press the "Add Object" Button.
+    * Within the addon, we also provide a component library that is fully 3D printable with desktop FDM printers. (We use Prusa MK3S)
+    * Library consists of:
+      * Mono stable val, which can be configured as AND, OR, NOT, INHIBIT logic gates. (refer to our paper)
+      * Bi stable val, which can be used as non-volitile memory.
+      * Free ends, which are place holders for open ends to atomosphere pressure
+    * Designers can also create their own circuit components following the "Creating Custom Circuit Components" part of the mannual.
     * You can move, rotate and scale the selected object with this panel. You can also use default Blender operations to manuver the objects. There is a simple cheat sheet of basic Blender operations below.
 3. In the Add Connection Panel, you can add connections between components.
-    * Choose the component object with the eyedrop or drop down. Choose the port if applicable. Click again to deselect port.
+    * Choose the component object with the eyedrop or drop down. Choose the port if applicable. Click again to deselect port. 
+    If a connection point is selected correctly, a hollow sphere will appear at the point of selection.
     * Every row is a connection. To delete a connection, cross out both selections on that row.
 4. In the Tubing Properties Panel, you can costumize your tubing.
+    * The default values in the software matches with our actrual circuit element and our experiement. But feel free to change them if you want.
     * First column is the basic properties. Unit length means the resolution / density of tubing routing. 
       * Usually you don't need to adjust this. Larger unit length gives you faster performance and premits larger tubing diameter. However, it could also cause the system to not be able to route dense tubing.
     * Second column if enabled adds a staging block under each logic gate conponent.
@@ -60,6 +79,68 @@ This prject is a Blender addon tool to automatically generate tubing network for
       * Go to File -> Export -> Stl
       * Remember to check the Selection Only on the right of the popup window.
       * Choose your export location and export.
+
+
+### Scripting Support
+The software have a hidden layer of API that supports scripting.
+Basically, user can provide a script to automate the design process described above.
+The software can also generate a script based on your design / changes.
+
+The "Save Current Progress" button inside the "Main Panel" will generate the script that acptures all the status of the tool.
+However, only models imported with the "Add Object" button will be saved.
+The script generated is a .json file, with the attributes of objects created by the software stored inside.
+
+The "Load Saved Progress" button will load the selected file into the software, which will parse the file and automatically excicute a set of commands saved inside the script file.
+
+This functionality enables users to share designs, reduce repetitive work and even perform version control on their design.
+
+However, the feature is most useful for the designer to iterate their design. 
+Since the software will erase all changes after generating the final tubings, saving a script before generation of tube would result in a more smooth work flow.
+
+
+
+### Creating Custom Circuit Components
+Logic Gates needs to have a stl file and a json file with the same name. Use the provided Circuit library as template and change values in each field.
+Remember to follow the .json file format.
+
+
+### Fabricating our Logic Components
+The details of the 3D model, printing parameters, and assembly guide can be found in the "keep-everything" branch of this repo.
+
+
+### Debugging Guides
+
+There are several common types of bugs:
+1. Stuff not selected properly
+    * Just go over the UI and examine if everything is properly selected.
+
+2. Port position not valid:
+    * Error message will say: "... is not in the first coordinate ..." or "... is too close to ground ..."
+    * This is caused by a port location is less than a unit away from groung, which will result in errors later.
+    So the software just throws an error when it detects that.
+    * To fix it, just move the vialating circuit component up.
+
+3. Path for some connection is not found
+
+    * Debugging can be done by bring up blender consol window.
+    * Look for "ERROR" in the print. Most possibly, it will say "Error: Can't retreve whole path ..." or "ERROR: Path [...] is too short to be joined by ..."
+    * This means that there are too many connections to one port and there are no place to add more connections.
+    * Solusion is to assign some of the connections to other ports. eg. A->B & A->C could be changed to A->B->C
+      * This error is because when the software joins a tube to existing tube, the existing on will be devided into two. If you add too many connections to one port, it will run out of length to be joined to, which results in the error "Path [...] is too short to be joined by ..."
+
+### Design Principles for Better Quality Fluidic Networks
+
+1. Try to aviod having more than two connections to one output. 
+    * Discouraged: A->B, A->C, A->D, A->E
+    * Encouraged: A->B, B->C, C->D, D->E
+2. The minium height for ports are recomended to be 2 * unit + 1.
+    * eg. with software presets, unit=7, a good port height will be 15.
+3. It's generally a good idea to have all the components at around the same height.
+4. Keep some spacing between components because eventrually you need to assemble them, and they need to fit physically.
+5. For design examples, refer to the "keep-everything" branch of the repo, a few well-structured examples of circuit design is available.
+
+
+
 
 
 ## Blender Operation Cheat Sheet
