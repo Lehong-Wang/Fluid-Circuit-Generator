@@ -1885,8 +1885,6 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
 
   def draw(self, context):
     layout = self.layout
-    layout.operator("mesh.add_gate_connection", text="Add Connections")
-
 
     # draw title
     connection_box = layout.box()
@@ -1925,6 +1923,9 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
         middle_col.label(icon='FORWARD')
         for _ in range(ui_height-1):
           middle_col.label(text="")
+
+    # add connection button at bottom
+    layout.operator("mesh.add_gate_connection", text="Add Connections")
 
 
 
