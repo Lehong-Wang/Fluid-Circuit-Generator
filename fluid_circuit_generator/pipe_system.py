@@ -7,8 +7,10 @@ Interface between imaginary grid and real world coordinates
 
 
 import sys
+import math
 from math import sqrt
 import importlib.util
+import numpy as np
 import bpy
 
 # spec = importlib.util.spec_from_file_location("path_finding.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/path_finding.py")
@@ -118,43 +120,72 @@ class PipeSystem:
     """Find the corrisponding ground coordinate for a real world coordinate"""
     dim = self.unit_dimention
     near_list = []
-    # if already on grid, not change
-    x_on_grid = bool(coord[0]%dim)
-    y_on_grid = bool(coord[1]%dim)
+    # # if already on grid, not change
+    # x_on_grid = bool(coord[0]%dim)
+    # y_on_grid = bool(coord[1]%dim)
 
     for connection in self.to_connect_list:
       for other_coord in connection:
         if self.is_near(coord, other_coord):
           near_list.append(other_coord)
 
-    weigh_x = 0.01 * direction_sign_x
-    weigh_y = 0.01 * direction_sign_y
 
-    for near_coord in near_list:
-      weigh_x += 1 / (coord[0] - near_coord[0] + 0.01)
-      weigh_y += 1 / (coord[1] - near_coord[1] + 0.01)
+    scaled_coord = (coord[0]/dim, coord[1]/dim, coord[2]/dim)
 
-    dir_x = (x_on_grid * weigh_x) > 0
-    dir_y = (y_on_grid * weigh_y) > 0
 
-    grid_coord = (int(coord[0]//dim + dir_x), int(coord[1]//dim + dir_y), int(coord[2]//dim))
-    # self.print_port_dict()
+    # list of potential snap destinations, if all are used, return CAN NOT snap
+    snap_candidate_list = []
+    # round coord x,y to nearest, floor z
+    rounded_coord = np.rint(scaled_coord).tolist()
+    rounded_coord = (int(rounded_coord[0]), int(rounded_coord[1]), int(math.floor(scaled_coord[2])))
 
-    while self.grid_coord_in_use(grid_coord):
-      if self.grid_coord_in_use((grid_coord[0]-dir_x, grid_coord[1], grid_coord[2])):
-        if self.grid_coord_in_use((grid_coord[0], grid_coord[1]-dir_y, grid_coord[2])):
-          if self.grid_coord_in_use((grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])):
-            grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2]-1)
-            if grid_coord[2] < 0:
-              self.register_error_message(f"ERROR: can't find snap point for Tip_Coord{coord}")
-              return
-            continue
-          grid_coord = (grid_coord[0]-dir_x, grid_coord[1]-dir_y, grid_coord[2])
-          break
-        grid_coord = (grid_coord[0], grid_coord[1]-dir_y, grid_coord[2])
+    # snap_candidate_list.append(rounded_coord)
+
+    # vector from near_coords to coord
+    dir_list = scaled_coord - np.array(near_list)
+    # 1 / length to make nearer coords weigh more, square to counter original length
+    # (1 / normal) ^ 2
+    dir_norm = np.linalg.norm(dir_list, axis = 1)
+    squared_norm = np.divide(1, dir_norm+0.01)**2
+    # max to 1.5
+    squared_norm = np.where(squared_norm<1.5, squared_norm, 1.5)
+    # apply to vectors
+    mask = np.array([squared_norm, squared_norm, squared_norm]).T
+    weighed_axis = np.multiply(mask, dir_list)
+    # add all vectors
+    axis_sum = np.sum(weighed_axis, axis=0)
+    # push coord by sum of vectors, and snap to grid
+    pushed_coord = (scaled_coord + axis_sum).tolist()
+    snaped_push_coord = np.rint(pushed_coord).tolist()
+    snaped_push_coord = (int(snaped_push_coord[0]), int(snaped_push_coord[1]), int(math.floor(scaled_coord[2])))
+    snap_candidate_list.append(snaped_push_coord)
+
+    snap_candidate_list.append(rounded_coord)
+
+
+    # add surrounding grid to candidate
+    snap_candidate_list.append((math.floor(scaled_coord[0]), math.floor(scaled_coord[1]), math.floor(scaled_coord[2])))
+    snap_candidate_list.append((math.ceil(scaled_coord[0]), math.floor(scaled_coord[1]), math.floor(scaled_coord[2])))
+    snap_candidate_list.append((math.floor(scaled_coord[0]), math.ceil(scaled_coord[1]), math.floor(scaled_coord[2])))
+    snap_candidate_list.append((math.ceil(scaled_coord[0]), math.ceil(scaled_coord[1]), math.floor(scaled_coord[2])))
+    snap_candidate_list.append((math.floor(scaled_coord[0]), math.floor(scaled_coord[1]), math.floor(scaled_coord[2])-1))
+    snap_candidate_list.append((math.ceil(scaled_coord[0]), math.floor(scaled_coord[1]), math.floor(scaled_coord[2])-1))
+    snap_candidate_list.append((math.floor(scaled_coord[0]), math.ceil(scaled_coord[1]), math.floor(scaled_coord[2])-1))
+    snap_candidate_list.append((math.ceil(scaled_coord[0]), math.ceil(scaled_coord[1]), math.floor(scaled_coord[2])-1))
+
+    grid_coord = None
+
+    for snap_coord in snap_candidate_list:
+      if not self.grid_coord_in_use(snap_coord):
+        if snap_coord[2] < 0:
+          self.register_error_message(f"ERROR: can't find snap point for Tip_Coord{coord}, z exceeds 0")
+          return
+        grid_coord = snap_coord
         break
-      grid_coord = (grid_coord[0]-dir_x, grid_coord[1], grid_coord[2])
-      break
+
+    if grid_coord is None:
+      self.register_error_message(f"ERROR: can't find snap point for Tip_Coord{coord}")
+      return
 
     real_grid_coord = tuple(map(lambda a: a*dim, grid_coord))
     print(f"Snap: {coord}-{grid_coord}-{real_grid_coord}")
@@ -275,7 +306,8 @@ class PipeSystem:
     bpy.context.collection.objects.link(curve_object)
 
     curve_object.data.bevel_depth = self.pipe_dimention[0] + self.pipe_dimention[1]
-    curve_object.data.bevel_resolution = 2
+    # curve_object.data.bevel_resolution = 2    # 8 vertices
+    curve_object.data.bevel_resolution = 14     # 32 verticies
 
     solidify_modifier_name = "Solidify"
     curve_object.modifiers.new(solidify_modifier_name, "SOLIDIFY").thickness = self.pipe_dimention[1]
@@ -335,6 +367,15 @@ class PipeSystem:
       junction_sphere.select_set(True)
       bpy.context.view_layer.objects.active = junction_sphere
       bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
+
+      # remesh to aviod random boolean cut errors
+      junction_modifier_name = "Remesh"
+      junction_sphere.modifiers.new(junction_modifier_name, "REMESH")
+      junction_sphere.modifiers[junction_modifier_name].mode = "VOXEL"
+      junction_sphere.modifiers[junction_modifier_name].voxel_size = .1 * self.pipe_dimention[0]
+      bpy.ops.object.modifier_apply(modifier = junction_modifier_name)
+      # print("Applying Remesh", .1 * self.pipe_dimention[0])
+
       # cut from other pipes
       for key,value in connection_object_dict.items():
         pipe = value[1]

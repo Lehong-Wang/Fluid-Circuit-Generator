@@ -1,0 +1,608 @@
+{
+  "Objects": {
+    "A*~B": [
+      [
+        40.0,
+        100.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "~A*B": [
+      [
+        40.0,
+        70.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "A": [
+      [
+        0.0,
+        100.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "B": [
+      [
+        0.0,
+        60.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "A_XOR_B": [
+      [
+        80.0,
+        85.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "Power": [
+      [
+        80.0,
+        125.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "A*~B_0": [
+      [
+        120.92314910888672,
+        99.21514892578125,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "~A*B_0": [
+      [
+        120.92314910888672,
+        69.21514892578125,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "A_XOR_B_0": [
+      [
+        160.92315673828125,
+        84.21514892578125,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "Output": [
+      [
+        190.92315673828125,
+        84.21514892578125,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "C": [
+      [
+        0.0,
+        20.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "A*B": [
+      [
+        40.0,
+        30.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "A_XOR_B*C": [
+      [
+        100.0,
+        30.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "A_XOR_B*C+A*B": [
+      [
+        160.0,
+        30.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "C_out": [
+      [
+        190.0,
+        30.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ]
+  },
+  "Connection": {
+    "Name List": [
+      "start_gate_",
+      "end_gate_"
+    ],
+    "0": [
+      "A*~B",
+      "Top_2"
+    ],
+    "1": [
+      "A*~B",
+      "Bottom_2"
+    ],
+    "2": [
+      "~A*B",
+      "Top_2"
+    ],
+    "3": [
+      "~A*B",
+      "Bottom_2"
+    ],
+    "4": [
+      "A_XOR_B",
+      "Top_2"
+    ],
+    "5": [
+      "A_XOR_B",
+      "Bottom_2"
+    ],
+    "7": [
+      "~A*B",
+      "Top_body"
+    ],
+    "9": [
+      "A*~B",
+      "Bottom_1"
+    ],
+    "11": [
+      "A*~B",
+      "Top_body"
+    ],
+    "13": [
+      "~A*B",
+      "Bottom_1"
+    ],
+    "14": [
+      "A*~B",
+      "Top_2"
+    ],
+    "15": [
+      "A_XOR_B",
+      "Top_body"
+    ],
+    "16": [
+      "~A*B",
+      "Top_2"
+    ],
+    "17": [
+      "A_XOR_B",
+      "Bottom_1"
+    ],
+    "21": [
+      "A_XOR_B",
+      "Top_1"
+    ],
+    "22": [
+      "A*~B_0",
+      "Top_2"
+    ],
+    "23": [
+      "A*~B_0",
+      "Bottom_2"
+    ],
+    "24": [
+      "~A*B_0",
+      "Top_2"
+    ],
+    "25": [
+      "~A*B_0",
+      "Bottom_2"
+    ],
+    "26": [
+      "A_XOR_B_0",
+      "Top_2"
+    ],
+    "27": [
+      "A_XOR_B_0",
+      "Bottom_2"
+    ],
+    "29": [
+      "~A*B_0",
+      "Top_body"
+    ],
+    "31": [
+      "A*~B_0",
+      "Bottom_1"
+    ],
+    "33": [
+      "A*~B_0",
+      "Top_body"
+    ],
+    "35": [
+      "~A*B_0",
+      "Bottom_1"
+    ],
+    "36": [
+      "A*~B_0",
+      "Top_2"
+    ],
+    "37": [
+      "A_XOR_B_0",
+      "Top_body"
+    ],
+    "38": [
+      "~A*B_0",
+      "Top_2"
+    ],
+    "39": [
+      "A_XOR_B_0",
+      "Bottom_1"
+    ],
+    "40": [
+      "A_XOR_B_0",
+      "Top_2"
+    ],
+    "43": [
+      "A_XOR_B_0",
+      "Top_1"
+    ],
+    "45": [
+      "A*B",
+      "Top_1"
+    ],
+    "46": [
+      "A*B",
+      "Top_2"
+    ],
+    "47": [
+      "A*B",
+      "Bottom_2"
+    ],
+    "49": [
+      "A*B",
+      "Top_body"
+    ],
+    "50": [
+      "A_XOR_B*C",
+      "Top_2"
+    ],
+    "51": [
+      "A_XOR_B*C",
+      "Bottom_2"
+    ],
+    "53": [
+      "A_XOR_B*C",
+      "Top_1"
+    ],
+    "55": [
+      "A_XOR_B*C",
+      "Top_body"
+    ],
+    "56": [
+      "A_XOR_B*C+A*B",
+      "Top_2"
+    ],
+    "57": [
+      "A_XOR_B*C+A*B",
+      "Bottom_2"
+    ],
+    "59": [
+      "A_XOR_B*C+A*B",
+      "Top_2"
+    ],
+    "60": [
+      "A*B",
+      "Bottom_2"
+    ],
+    "61": [
+      "A_XOR_B*C+A*B",
+      "Bottom_1"
+    ],
+    "62": [
+      "A_XOR_B*C",
+      "Bottom_2"
+    ],
+    "63": [
+      "A_XOR_B*C+A*B",
+      "Top_body"
+    ],
+    "65": [
+      "A_XOR_B*C+A*B",
+      "Top_1"
+    ],
+    "28": [
+      "A_XOR_B",
+      "Bottom_2"
+    ],
+    "30": [
+      "A_XOR_B",
+      "Top_2"
+    ],
+    "54": [
+      "~A*B_0",
+      "Top_body"
+    ],
+    "6": [
+      "A",
+      "null"
+    ],
+    "8": [
+      "A",
+      "null"
+    ],
+    "10": [
+      "B",
+      "null"
+    ],
+    "12": [
+      "B",
+      "null"
+    ],
+    "20": [
+      "Power",
+      "null"
+    ],
+    "32": [
+      "C",
+      "null"
+    ],
+    "34": [
+      "C",
+      "null"
+    ],
+    "41": [
+      "Output",
+      "null"
+    ],
+    "42": [
+      "Power",
+      "null"
+    ],
+    "44": [
+      "A",
+      "null"
+    ],
+    "48": [
+      "B",
+      "null"
+    ],
+    "52": [
+      "C",
+      "null"
+    ],
+    "58": [
+      "C_out",
+      "null"
+    ],
+    "64": [
+      "Power",
+      "null"
+    ]
+  },
+  "Pipe": {
+    "pipe_inner_radius": 1.600000023841858,
+    "pipe_thickness": 1.399999976158142,
+    "tip_length": 1.0,
+    "unit_dimention": 7,
+    "add_stage": true,
+    "stage_height": 0.5,
+    "stage_rim_size": 5.0,
+    "add_custom_tip": true,
+    "tip_offset": 3.0,
+    "tip_stl_path": "Val_Library/press_fit_tip.stl"
+  }
+}

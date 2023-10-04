@@ -120,7 +120,8 @@ class Node:
     """Helper Function"""
     x1,y1,z1 = self.coord
     x2,y2,z2 = dest_node.coord
-    dest_h = max(abs(x1-x2), abs(y1-y2), abs(z1-z2)) + 0.1*(self.square_root(self.coord, dest_node.coord))
+    dest_h = max(abs(x1-x2), abs(y1-y2), abs(z1-z2)) + 0.4*(self.square_root(self.coord, dest_node.coord))
+    # dest_h = max(abs(x1-x2), abs(y1-y2), abs(z1-z2)) + 0.1*(self.square_root(self.coord, dest_node.coord))
     return dest_h
 
   # return if G is updated (decreased)

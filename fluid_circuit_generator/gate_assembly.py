@@ -37,6 +37,7 @@ class GateAssembly:
   stage_height = 1
   stage_margin = .5
   tip_offset = 0.1
+  unit_dimention = 1
 
 
   def __init__(self):
@@ -88,6 +89,7 @@ class GateAssembly:
     self.stage_height = stage_height
     self.stage_margin = stage_margin
     self.tip_offset = tip_offset
+    self.unit_dimention = unit_dimention
 
     max_real_dimention = (0,0,0)
     is_port_valid = True  # within valid dimensions
@@ -391,6 +393,7 @@ class GateAssembly:
     stage_object.modifiers[junction_modifier_name].operation = 'DIFFERENCE'
     stage_object.modifiers[junction_modifier_name].solver = "EXACT"
     stage_object.modifiers[junction_modifier_name].use_self = True
+    stage_object.modifiers[junction_modifier_name].use_hole_tolerant = True
 
     # fully select before apply
     stage_object.select_set(True)
@@ -400,24 +403,39 @@ class GateAssembly:
     bpy.data.objects.remove(to_cut_sylinder)
     # to_cut_sylinder.hide_set(True)
 
+    # mesh clean up
+    stage_object.select_set(True)
+    bpy.context.view_layer.objects.active = stage_object
+    bpy.ops.object.mode_set(mode = 'EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.vert_connect_nonplanar(angle_limit=0.001)
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.vert_connect_concave()
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.remove_doubles(threshold=0.002)
+    bpy.ops.object.mode_set(mode = 'OBJECT')
+
+
 
   def add_guide_arrow(self, gate, stage):
     """
     Carve an arrow into the stage which points to the X direction of the logic gate
     Act as a guide during assembly
     """
+    unit = self.unit_dimention
+
     # make arrow object
     bpy.ops.mesh.primitive_cube_add()
     arrow = bpy.context.active_object
-    arrow.dimensions = (1, .5, .5)
+    arrow.dimensions = (unit, .5*unit, .5*unit)
     bpy.ops.object.mode_set(mode = 'EDIT')
 
     bpy.ops.mesh.primitive_cylinder_add(
-      location=(0.5, 0, 0),
+      location=(0.5*unit, 0, 0),
       rotation=(0, 0, -1.5708),
       vertices=3,
-      radius=.6,
-      depth=.5
+      radius=.6*unit,
+      depth=.5*unit
     )
     bpy.ops.object.mode_set(mode = 'OBJECT')
 
@@ -531,7 +549,7 @@ class GateAssembly:
           bpy.ops.import_mesh.stl(filepath = abs_path)
           tip_obj = bpy.context.active_object
           tip_obj.name = f"{obj_base_name}-{rounded_coord}"
-          tip_obj.scale = (target_scale, target_scale, 1)
+          tip_obj.scale = (target_scale, target_scale, target_scale)
           tip_obj.location = (coord[0], coord[1], coord[2]-offset)
           tip_obj_list.append(tip_obj)
 

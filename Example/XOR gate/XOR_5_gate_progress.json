@@ -1,0 +1,356 @@
+{
+  "Objects": {
+    "~A": [
+      [
+        30.0,
+        80.0,
+        30.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val-model-final.stl",
+        "Val_Library/mono-stable-val-model-final.json"
+      ]
+    ],
+    "A * ~B": [
+      [
+        60.0,
+        80.0,
+        30.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val-model-final.stl",
+        "Val_Library/mono-stable-val-model-final.json"
+      ]
+    ],
+    "~B": [
+      [
+        30.0,
+        25.0,
+        30.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val-model-final.stl",
+        "Val_Library/mono-stable-val-model-final.json"
+      ]
+    ],
+    "B * ~A": [
+      [
+        60.0,
+        25.0,
+        30.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val-model-final.stl",
+        "Val_Library/mono-stable-val-model-final.json"
+      ]
+    ],
+    "A": [
+      [
+        0.0,
+        80.0,
+        20.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "Power": [
+      [
+        0.0,
+        50.0,
+        20.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "B": [
+      [
+        0.0,
+        20.0,
+        20.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "A XOR B": [
+      [
+        90.0,
+        48.854068756103516,
+        30.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val-model-final.stl",
+        "Val_Library/mono-stable-val-model-final.json"
+      ]
+    ],
+    "Out": [
+      [
+        120.0,
+        50.0,
+        20.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ]
+  },
+  "Connection": {
+    "Name List": [
+      "start_gate_",
+      "end_gate_"
+    ],
+    "0": [
+      "~A",
+      "Top_2"
+    ],
+    "1": [
+      "~A",
+      "Bottom_2"
+    ],
+    "2": [
+      "A * ~B",
+      "Top_2"
+    ],
+    "3": [
+      "A * ~B",
+      "Bottom_2"
+    ],
+    "4": [
+      "~B",
+      "Top_2"
+    ],
+    "5": [
+      "~B",
+      "Bottom_2"
+    ],
+    "6": [
+      "B * ~A",
+      "Top_2"
+    ],
+    "7": [
+      "B * ~A",
+      "Bottom_2"
+    ],
+    "8": [
+      "A XOR B",
+      "Top_2"
+    ],
+    "9": [
+      "A XOR B",
+      "Bottom_2"
+    ],
+    "13": [
+      "~A",
+      "Bottom_1"
+    ],
+    "15": [
+      "~B",
+      "Bottom_1"
+    ],
+    "17": [
+      "~A",
+      "Top_body"
+    ],
+    "19": [
+      "A * ~B",
+      "Top_1"
+    ],
+    "21": [
+      "~B",
+      "Top_body"
+    ],
+    "23": [
+      "B * ~A",
+      "Top_1"
+    ],
+    "24": [
+      "~A",
+      "Bottom_2"
+    ],
+    "25": [
+      "B * ~A",
+      "Top_body"
+    ],
+    "26": [
+      "~B",
+      "Top_2"
+    ],
+    "27": [
+      "A * ~B",
+      "Top_body"
+    ],
+    "28": [
+      "A * ~B",
+      "Bottom_2"
+    ],
+    "30": [
+      "B * ~A",
+      "Top_2"
+    ],
+    "32": [
+      "A XOR B",
+      "Bottom_2"
+    ],
+    "11": [
+      "A XOR B",
+      "Top_1"
+    ],
+    "29": [
+      "A XOR B",
+      "Top_body"
+    ],
+    "31": [
+      "A XOR B",
+      "Bottom_1"
+    ],
+    "10": [
+      "Power",
+      "null"
+    ],
+    "12": [
+      "Power",
+      "null"
+    ],
+    "14": [
+      "Power",
+      "null"
+    ],
+    "16": [
+      "A",
+      "null"
+    ],
+    "18": [
+      "A",
+      "null"
+    ],
+    "20": [
+      "B",
+      "null"
+    ],
+    "22": [
+      "B",
+      "null"
+    ],
+    "33": [
+      "Out",
+      "null"
+    ]
+  },
+  "Pipe": {
+    "pipe_inner_radius": 1.600000023841858,
+    "pipe_thickness": 1.399999976158142,
+    "tip_length": 1.0,
+    "unit_dimention": 7,
+    "add_stage": false,
+    "stage_height": 0.5,
+    "stage_rim_size": 0.5,
+    "add_custom_tip": true,
+    "tip_offset": 3.0,
+    "tip_stl_path": "Val_Library/press_fit_tip_3mm.stl"
+  }
+}

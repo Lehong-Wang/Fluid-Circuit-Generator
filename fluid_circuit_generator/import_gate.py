@@ -98,7 +98,7 @@ class LogicGate:
     with open(file_name, "r") as f:
       self.json_data = json.load(f)
 
-      self.name = self.json_data["Name"]
+      # self.name = self.json_data["Name"]
       self.default_dimention = self.json_data["Object Dimension"]
       self.port_dict = self.json_data["Port Info"]
       self.connection_dict = self.json_data["Connections"]

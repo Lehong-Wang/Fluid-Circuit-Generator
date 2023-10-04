@@ -1,0 +1,846 @@
+{
+  "Objects": {
+    "S1*~I": [
+      [
+        38.0,
+        119.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "S0*I": [
+      [
+        38.0,
+        90.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "~S1*I": [
+      [
+        38.0,
+        60.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "S0*~I": [
+      [
+        38.0,
+        30.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "I": [
+      [
+        0.0,
+        75.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "S1_display": [
+      [
+        155.0,
+        150.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "S0_display": [
+      [
+        155.0,
+        0.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "\uff5eS1\u2018*I": [
+      [
+        100.0,
+        118.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "~S0'*I": [
+      [
+        100.0,
+        30.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "S1'": [
+      [
+        100.0,
+        90.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "S0'": [
+      [
+        100.0,
+        60.0,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "S1_memory": [
+      [
+        155.0,
+        110.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/bi-stable-val.stl",
+        "Val_Library/bi-stable-val.json"
+      ]
+    ],
+    "S0_memory": [
+      [
+        155.0,
+        40.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/bi-stable-val.stl",
+        "Val_Library/bi-stable-val.json"
+      ]
+    ],
+    "Power": [
+      [
+        100.0,
+        0.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "S0*~S1": [
+      [
+        200.0,
+        125.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "S0*S1": [
+      [
+        200.0,
+        75.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "~S0*S1": [
+      [
+        200.0,
+        25.0,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "A_out": [
+      [
+        230.0,
+        110.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "B_out": [
+      [
+        230.0,
+        75.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "C_out": [
+      [
+        230.0,
+        40.0,
+        15.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ]
+  },
+  "Connection": {
+    "Name List": [
+      "start_gate_",
+      "end_gate_"
+    ],
+    "0": [
+      "S1*~I",
+      "Top_2"
+    ],
+    "2": [
+      "S0*I",
+      "Top_2"
+    ],
+    "4": [
+      "~S1*I",
+      "Top_2"
+    ],
+    "5": [
+      "~S1*I",
+      "Bottom_2"
+    ],
+    "6": [
+      "S0*~I",
+      "Top_2"
+    ],
+    "7": [
+      "S0*~I",
+      "Bottom_2"
+    ],
+    "9": [
+      "S1*~I",
+      "Top_body"
+    ],
+    "16": [
+      "\uff5eS1\u2018*I",
+      "Top_2"
+    ],
+    "17": [
+      "\uff5eS1\u2018*I",
+      "Bottom_2"
+    ],
+    "18": [
+      "S1'",
+      "Top_2"
+    ],
+    "19": [
+      "S1'",
+      "Bottom_2"
+    ],
+    "20": [
+      "S0'",
+      "Top_2"
+    ],
+    "21": [
+      "S0'",
+      "Bottom_2"
+    ],
+    "22": [
+      "~S0'*I",
+      "Top_2"
+    ],
+    "23": [
+      "~S0'*I",
+      "Bottom_2"
+    ],
+    "24": [
+      "S1_memory",
+      "Top_2"
+    ],
+    "25": [
+      "S1_memory",
+      "Bottom_2"
+    ],
+    "26": [
+      "S0_memory",
+      "Top_2"
+    ],
+    "27": [
+      "S0_memory",
+      "Bottom_2"
+    ],
+    "29": [
+      "S1*~I",
+      "Bottom_1"
+    ],
+    "31": [
+      "~S1*I",
+      "Top_body"
+    ],
+    "35": [
+      "S0*~I",
+      "Bottom_1"
+    ],
+    "15": [
+      "S0*I",
+      "Top_body"
+    ],
+    "39": [
+      "S1'",
+      "Bottom_1"
+    ],
+    "40": [
+      "~S1*I",
+      "Top_2"
+    ],
+    "41": [
+      "S0'",
+      "Top_body"
+    ],
+    "42": [
+      "S0*~I",
+      "Top_2"
+    ],
+    "43": [
+      "S0'",
+      "Bottom_1"
+    ],
+    "45": [
+      "S0'",
+      "Top_1"
+    ],
+    "47": [
+      "S1'",
+      "Top_1"
+    ],
+    "48": [
+      "S1'",
+      "Top_2"
+    ],
+    "49": [
+      "\uff5eS1\u2018*I",
+      "Top_body"
+    ],
+    "50": [
+      "S1'",
+      "Top_2"
+    ],
+    "51": [
+      "S1_memory",
+      "Top_body"
+    ],
+    "52": [
+      "\uff5eS1\u2018*I",
+      "Top_2"
+    ],
+    "53": [
+      "S1_memory",
+      "Bottom_body"
+    ],
+    "54": [
+      "S0'",
+      "Top_2"
+    ],
+    "55": [
+      "S0_memory",
+      "Top_body"
+    ],
+    "57": [
+      "~S0'*I",
+      "Top_body"
+    ],
+    "58": [
+      "~S0'*I",
+      "Top_2"
+    ],
+    "59": [
+      "S0_memory",
+      "Bottom_body"
+    ],
+    "63": [
+      "~S0'*I",
+      "Bottom_1"
+    ],
+    "64": [
+      "S1_memory",
+      "Top_2"
+    ],
+    "66": [
+      "S0_memory",
+      "Top_2"
+    ],
+    "69": [
+      "S0_memory",
+      "Top_1"
+    ],
+    "73": [
+      "S0*~S1",
+      "Bottom_2"
+    ],
+    "74": [
+      "S0*S1",
+      "Top_2"
+    ],
+    "75": [
+      "S0*S1",
+      "Bottom_2"
+    ],
+    "76": [
+      "~S0*S1",
+      "Top_2"
+    ],
+    "77": [
+      "~S0*S1",
+      "Bottom_2"
+    ],
+    "79": [
+      "S0*~S1",
+      "Top_body"
+    ],
+    "81": [
+      "~S0*S1",
+      "Bottom_1"
+    ],
+    "83": [
+      "S0*S1",
+      "Top_1"
+    ],
+    "85": [
+      "S0*~S1",
+      "Bottom_1"
+    ],
+    "89": [
+      "~S0*S1",
+      "Top_body"
+    ],
+    "90": [
+      "S0*~S1",
+      "Top_2"
+    ],
+    "92": [
+      "S0*S1",
+      "Top_2"
+    ],
+    "94": [
+      "~S0*S1",
+      "Top_2"
+    ],
+    "11": [
+      "S0*I",
+      "Top_body"
+    ],
+    "72": [
+      "S0*~S1",
+      "Top_2"
+    ],
+    "80": [
+      "S0*~S1",
+      "Top_body"
+    ],
+    "82": [
+      "~S0*S1",
+      "Bottom_1"
+    ],
+    "86": [
+      "S0*~S1",
+      "Bottom_1"
+    ],
+    "87": [
+      "S0*S1",
+      "Top_body"
+    ],
+    "88": [
+      "S0*S1",
+      "Top_body"
+    ],
+    "10": [
+      "S1*~I",
+      "Top_body"
+    ],
+    "14": [
+      "~S1*I",
+      "Bottom_1"
+    ],
+    "56": [
+      "S0'",
+      "Bottom_2"
+    ],
+    "67": [
+      "S0*~I",
+      "Bottom_1"
+    ],
+    "70": [
+      "S1_memory",
+      "Top_1"
+    ],
+    "46": [
+      "S0'",
+      "Top_1"
+    ],
+    "30": [
+      "S1*~I",
+      "Bottom_1"
+    ],
+    "34": [
+      "S0*I",
+      "Top_1"
+    ],
+    "78": [
+      "S1_memory",
+      "Bottom_2"
+    ],
+    "12": [
+      "S0*~I",
+      "Top_body"
+    ],
+    "62": [
+      "S0*~I",
+      "Top_body"
+    ],
+    "33": [
+      "S0*~I",
+      "Bottom_1"
+    ],
+    "3": [
+      "S1'",
+      "Bottom_1"
+    ],
+    "38": [
+      "S0*I",
+      "Bottom_2"
+    ],
+    "1": [
+      "S1'",
+      "Top_body"
+    ],
+    "36": [
+      "S1*~I",
+      "Top_body"
+    ],
+    "37": [
+      "\uff5eS1\u2018*I",
+      "Bottom_1"
+    ],
+    "60": [
+      "S1*~I",
+      "Bottom_2"
+    ],
+    "61": [
+      "S1*~I",
+      "Top_2"
+    ],
+    "71": [
+      "S1'",
+      "Top_1"
+    ],
+    "8": [
+      "I",
+      "null"
+    ],
+    "13": [
+      "I",
+      "null"
+    ],
+    "28": [
+      "S1_display",
+      "null"
+    ],
+    "32": [
+      "S0_display",
+      "null"
+    ],
+    "44": [
+      "Power",
+      "null"
+    ],
+    "65": [
+      "S1_display",
+      "null"
+    ],
+    "68": [
+      "Power",
+      "null"
+    ],
+    "84": [
+      "S0_display",
+      "null"
+    ],
+    "91": [
+      "A_out",
+      "null"
+    ],
+    "93": [
+      "B_out",
+      "null"
+    ],
+    "95": [
+      "C_out",
+      "null"
+    ]
+  },
+  "Pipe": {
+    "pipe_inner_radius": 1.600000023841858,
+    "pipe_thickness": 1.399999976158142,
+    "tip_length": 1.0,
+    "unit_dimention": 7,
+    "add_stage": true,
+    "stage_height": 0.5,
+    "stage_rim_size": 5.0,
+    "add_custom_tip": true,
+    "tip_offset": 3.0,
+    "tip_stl_path": "Val_Library/press_fit_tip.stl"
+  }
+}

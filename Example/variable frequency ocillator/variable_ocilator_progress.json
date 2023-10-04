@@ -1,0 +1,350 @@
+{
+  "Objects": {
+    "ring_3_1": [
+      [
+        80.0,
+        26.952762603759766,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "ring_3_2": [
+      [
+        117.25900268554688,
+        48.6965217590332,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        2.6179938316345215
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "ring_3_3": [
+      [
+        118.07975769042969,
+        93.0528793334961,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        3.665191411972046
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "ring_5_4": [
+      [
+        80.0,
+        112.94570922851562,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        -1.5707963705062866
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "ring_5_5": [
+      [
+        43.35728454589844,
+        92.46168518066406,
+        25.0
+      ],
+      [
+        0.0,
+        -0.0,
+        -0.5235987901687622
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "switch": [
+      [
+        45.06602478027344,
+        46.81998825073242,
+        25.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.5235987901687622
+      ],
+      [
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        false,
+        "Val_Library/mono-stable-val.stl",
+        "Val_Library/mono-stable-val.json"
+      ]
+    ],
+    "Power": [
+      [
+        28.0,
+        14.0,
+        12.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ],
+    "Control": [
+      [
+        49.0,
+        14.0,
+        12.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        7.0,
+        7.0,
+        7.0
+      ],
+      [
+        true,
+        "Val_Library/free_end_pointer.stl",
+        ""
+      ]
+    ]
+  },
+  "Connection": {
+    "Name List": [
+      "start_gate_",
+      "end_gate_"
+    ],
+    "0": [
+      "ring_3_1",
+      "Top_2"
+    ],
+    "1": [
+      "ring_3_1",
+      "Bottom_2"
+    ],
+    "2": [
+      "ring_3_2",
+      "Top_2"
+    ],
+    "3": [
+      "ring_3_2",
+      "Bottom_2"
+    ],
+    "4": [
+      "ring_3_3",
+      "Top_2"
+    ],
+    "5": [
+      "ring_3_3",
+      "Bottom_2"
+    ],
+    "6": [
+      "ring_5_4",
+      "Top_2"
+    ],
+    "7": [
+      "ring_5_4",
+      "Bottom_2"
+    ],
+    "8": [
+      "ring_5_5",
+      "Top_2"
+    ],
+    "9": [
+      "ring_5_5",
+      "Bottom_2"
+    ],
+    "10": [
+      "switch",
+      "Top_1"
+    ],
+    "11": [
+      "switch",
+      "Bottom_1"
+    ],
+    "35": [
+      "ring_3_1",
+      "Bottom_1"
+    ],
+    "15": [
+      "ring_3_2",
+      "Bottom_1"
+    ],
+    "17": [
+      "ring_3_3",
+      "Bottom_1"
+    ],
+    "19": [
+      "ring_5_4",
+      "Bottom_1"
+    ],
+    "21": [
+      "ring_5_5",
+      "Bottom_1"
+    ],
+    "23": [
+      "switch",
+      "Top_body"
+    ],
+    "24": [
+      "ring_3_1",
+      "Top_2"
+    ],
+    "25": [
+      "ring_3_2",
+      "Top_body"
+    ],
+    "26": [
+      "ring_3_2",
+      "Top_2"
+    ],
+    "27": [
+      "ring_3_3",
+      "Top_body"
+    ],
+    "29": [
+      "ring_5_4",
+      "Top_body"
+    ],
+    "30": [
+      "ring_5_4",
+      "Top_2"
+    ],
+    "31": [
+      "ring_5_5",
+      "Top_body"
+    ],
+    "32": [
+      "ring_5_5",
+      "Top_2"
+    ],
+    "33": [
+      "switch",
+      "Top_2"
+    ],
+    "12": [
+      "ring_3_3",
+      "Top_2"
+    ],
+    "13": [
+      "switch",
+      "Bottom_2"
+    ],
+    "37": [
+      "ring_3_1",
+      "Top_body"
+    ],
+    "36": [
+      "switch",
+      "Top_1"
+    ],
+    "28": [
+      "ring_3_3",
+      "Bottom_2"
+    ],
+    "14": [
+      "Power",
+      "null"
+    ],
+    "16": [
+      "Power",
+      "null"
+    ],
+    "18": [
+      "Control",
+      "null"
+    ],
+    "20": [
+      "Control",
+      "null"
+    ],
+    "22": [
+      "Control",
+      "null"
+    ],
+    "34": [
+      "Power",
+      "null"
+    ]
+  },
+  "Pipe": {
+    "pipe_inner_radius": 1.600000023841858,
+    "pipe_thickness": 1.399999976158142,
+    "tip_length": 1.0,
+    "unit_dimention": 7,
+    "add_stage": true,
+    "stage_height": 0.5,
+    "stage_rim_size": 4.400000095367432,
+    "add_custom_tip": true,
+    "tip_offset": 3.0,
+    "tip_stl_path": "Val_Library/press_fit_tip.stl"
+  }
+}
