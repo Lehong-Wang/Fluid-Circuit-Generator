@@ -960,6 +960,9 @@ class Grid:
     for key,value in self.connection_dict.items():
       this_path = value
       to_remove_list = []
+      # remove redundent path if arrive at destination in the middle
+      idx = this_path.index(this_path[-1])
+      this_path = this_path[:idx+1]
       for i,node in enumerate(this_path[1:-1]):
         last_node = this_path[i]
         next_node = this_path[i+2]

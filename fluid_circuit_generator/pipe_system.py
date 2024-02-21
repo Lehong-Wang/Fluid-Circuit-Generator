@@ -441,7 +441,8 @@ class PipeSystem:
   def make_fillet(self, coord_list):
     """Make fillet in pipe for turns < 120 degrees"""
     new_coord_list = []
-    fillet_size = .7 * (self.pipe_dimention[0] + self.pipe_dimention[1])
+    fillet_size = (self.pipe_dimention[0] + self.pipe_dimention[1])
+    # fillet_size = .7 * (self.pipe_dimention[0] + self.pipe_dimention[1])
 
     for i, this_coord in enumerate(coord_list):
       if (i == 0 or i == len(coord_list) - 1):
@@ -461,7 +462,8 @@ class PipeSystem:
         cos = dot_product / (l_v1 * l_v2)
 
         # angle > 120 or too close together
-        if cos < -.5 or min(l_v1, l_v2) < 2 * fillet_size:
+        if cos < -.5 or min(l_v1, l_v2) <  fillet_size:
+        # if cos < -.5 or min(l_v1, l_v2) < 2 * fillet_size:
           new_coord_list.append(this_coord)
         else:
           d1 = tuple(map(lambda a: a/l_v1*fillet_size, v1))
