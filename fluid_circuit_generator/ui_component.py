@@ -782,8 +782,9 @@ class MESH_OT_make_assembly(bpy.types.Operator):
     stage_height = pipe_prop.stage_height
     stage_margin = pipe_prop.stage_rim_size
     tip_offset = pipe_prop.tip_offset
-    # tip_len = pipe_prop.tip_length
-    tip_len = unit_dim / 2
+    tip_len = pipe_prop.tip_length
+    # tip_len = unit_dim / 2
+    # tip_len = 0.5
     if self.assembly.prepare_for_connection(
       pipe_dimention = (inner_radius,thickness),
       unit_dimention = unit_dim,
@@ -1721,17 +1722,18 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
     soft_max = 3
   )
   pipe_thickness: bpy.props.FloatProperty(
-    default = 1.4,
+    default = 1.6,
     min = 0.01,
     soft_max = 3
   )
+  # NOT enabled in UI
   tip_length: bpy.props.FloatProperty(
-    default = 1,
+    default = 0.5,
     min = 0,
     soft_max = 2
   )
   unit_dimention: bpy.props.IntProperty(
-    default = 7,
+    default = 9,
     min = 1,
     soft_max = 10
   )
@@ -1739,7 +1741,7 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
   preview_obj_list = []
   preview_is_shown: bpy.props.BoolProperty(default=False)
 
-  add_stage: bpy.props.BoolProperty(default = True)
+  add_stage: bpy.props.BoolProperty(default = False)
 
   stage_height: bpy.props.FloatProperty(
     default = .5,
@@ -1752,7 +1754,7 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
     soft_max = 5
   )
 
-  add_custom_tip: bpy.props.BoolProperty(default = True)
+  add_custom_tip: bpy.props.BoolProperty(default = False)
 
   tip_offset: bpy.props.FloatProperty(
     default = 3,

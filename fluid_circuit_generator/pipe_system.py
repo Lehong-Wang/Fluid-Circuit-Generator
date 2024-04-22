@@ -441,7 +441,7 @@ class PipeSystem:
   def make_fillet(self, coord_list):
     """Make fillet in pipe for turns < 120 degrees"""
     new_coord_list = []
-    fillet_size = (self.pipe_dimention[0] + self.pipe_dimention[1])
+    fillet_size = 1 * (self.pipe_dimention[0] + self.pipe_dimention[1])
     # fillet_size = .7 * (self.pipe_dimention[0] + self.pipe_dimention[1])
 
     for i, this_coord in enumerate(coord_list):

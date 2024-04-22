@@ -958,6 +958,7 @@ class Grid:
   def smooth_out_path(self):
     """Smooth the path a bit"""
     for key,value in self.connection_dict.items():
+
       this_path = value
       to_remove_list = []
       # remove redundent path if arrive at destination in the middle
