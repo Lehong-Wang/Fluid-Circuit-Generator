@@ -11,6 +11,7 @@ All other functionalities can be run with this file alone
 
 import json
 import os
+import shutil
 from math import radians, degrees, sin, cos
 import numpy as np
 import bpy
@@ -237,6 +238,11 @@ class MESH_OT_choose_connection_port(bpy.types.Operator):
     # place sphere at selected port
     select_pos = Helper.get_abs_port_pos(gate_obj, self.port_name)
     Helper.place_current_selection_sphere(select_pos)
+
+
+    # print("Check", Helper.check_coord_in_object((0,0,0), gate_obj, 1.5))
+    # print(Helper.check_coord_in_object((0,0,10), gate_obj, 1.5))
+    # print(Helper.check_coord_in_object((0,0,-10), gate_obj, 1.5))
 
     return {'FINISHED'}
 
@@ -792,6 +798,8 @@ class MESH_OT_make_assembly(bpy.types.Operator):
       stage_height = stage_height,
       stage_margin = stage_margin,
       tip_offset = tip_offset):
+
+      print("\n\n\nin add_all_connections\n", self.assembly.obstacle_list)
 
       for connection_unit in self.connection_list:
 
@@ -1426,6 +1434,25 @@ class MESH_OT_save_current_progress(bpy.types.Operator):
     with open(PROGRESS_FILE, 'w') as f:
       json.dump(progress_data, f, indent=2)
 
+
+    # save all other objects as stl in temp folder
+    if os.path.exists(PROGRESS_DIR):
+        shutil.rmtree(PROGRESS_DIR)
+    os.makedirs(PROGRESS_DIR)
+
+    ingore_names = ["Test Tube", "Test Stage", "Test Tip", "Current Selection"]
+    print("Current Objects:", list(bpy.data.objects))
+    for obj in bpy.data.objects:
+      if obj.name not in ingore_names and obj.gate_property.stl_file_path == "" and obj.type == 'MESH':
+
+        bpy.ops.object.select_all(action='DESELECT')
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+
+        stl_file_path = os.path.join(PROGRESS_DIR, f"{obj.name}.stl")
+        bpy.ops.export_mesh.stl(filepath=stl_file_path, use_selection=True)
+
+
     self.report(
       {"INFO"},
       f"Saved progress to {PROGRESS_FILE}"
@@ -1467,6 +1494,13 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
         f"File Not Exist at path: {progress_file_path}"
       )
       return {"CANCELLED"}
+
+    if not os.path.exists(PROGRESS_DIR):
+      self.report(
+        {"WARNING"},
+        f"Temp Folder Not Exist at path: {PROGRESS_DIR}"
+      )
+      os.makedirs(PROGRESS_DIR)
 
     # get existing name
     existing_obj_name = []
@@ -1587,6 +1621,17 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
     pipe_prop.tip_stl_path = progress_data["Pipe"]["tip_stl_path"]
 
 
+    # load all objects
+    stl_files = [f for f in os.listdir(PROGRESS_DIR) if f.endswith(".stl")]
+    if not stl_files:
+      print("No STL files found in the 'temp' folder.")
+    
+    for stl_file in stl_files:
+      file_path = os.path.join(PROGRESS_DIR, stl_file)
+      bpy.ops.import_mesh.stl(filepath=file_path)
+      print(f"Imported {stl_file}")
+
+
     self.report(
       {"INFO"},
       "Successfully loaded from progress file."
@@ -1594,6 +1639,67 @@ class MESH_OT_load_saved_progress(bpy.types.Operator):
     return {'FINISHED'}
 
 
+
+
+
+class MESH_OT_debug_command(bpy.types.Operator):
+  """
+  A button for debugging
+  """
+  bl_idname = "mesh.debug_command"
+  bl_label = "Debug Command"
+
+  def execute(self, context):
+
+    print("\n\nExecuting Debug Command\n\n")
+
+    assembly = bpy.types.MESH_OT_make_assembly.assembly
+    obstacles = assembly.get_obstacle_coord(assembly.obstacle_list, (10,10,10), 9, (1,1))
+
+
+    for coord in obstacles:
+      bpy.ops.mesh.primitive_cube_add(location=coord, size=.5, name="obstacle")
+
+
+
+
+
+    # gate = gate_assembly.GateAssembly()
+    # gate.prepare_for_connection(pipe_dimention = (.5,.3), unit_dimention = 3, tip_length = 4, stage_height = 20, stage_margin = 2, tip_offset = 3)
+
+
+    # a = gate_assembly.GateAssembly()
+
+    # a.reset_blender()
+
+    # gate1 = a.add_gate("g1", "/Users/lehongwang/Library/Application Support/Blender/3.2/scripts/addons/fluid_circuit_generator/Val_Library/SK_PLG.stl")
+    # gate2 = a.add_gate("g2", "/Users/lehongwang/Library/Application Support/Blender/3.2/scripts/addons/fluid_circuit_generator/Val_Library/SK_PLG.stl")
+    # gate1.move_gate(33,53,26)
+    # # gate1.rotate_gate(15,26,37)
+    # # gate1.scale_gate(1,3,.8)
+    # gate2.move_gate(13,17,20)
+    # # gate2.scale_gate(.7,.7,.5)
+    # # gate2.rotate_gate(5,5,30)
+
+    # a.add_free_end_port("f1", (10,40,10))
+    # a.add_free_end_port("f2", (45,10,10))
+
+    # bpy.ops.mesh.primitive_cube_add(size=3, location=(5,5,5))
+
+    # if a.prepare_for_connection(pipe_dimention = (1.6, 1.6), unit_dimention = 9, tip_length = 4, stage_height = 20, stage_margin = 2, tip_offset = 3):
+
+
+    #   a.print_connection_group()
+    #   print(a.get_warning_message())
+    #   print(a.get_error_message())
+
+    # obstacle_list = a.get_obstacle_objects()
+    # obstacles = a.get_obstacle_coord(obstacle_list, max_grid_dimention=(20,20,20), unit_dimention=1, pipe_dimention=(1.5,1.5))
+
+
+
+
+    return {'FINISHED'}
 
 
 
@@ -1615,6 +1721,7 @@ GATE_LIBRARY_PATH = ADDON_DIR + "Val_Library/"
 FREE_END_STL = GATE_LIBRARY_PATH + "free_end_pointer.stl"
 DEFAULT_TIP_STL = GATE_LIBRARY_PATH + "press_fit_tip.stl"
 PROGRESS_FILE = ADDON_DIR + "saved_progress.json"
+PROGRESS_DIR = ADDON_DIR + "temp"
 
 class GatePropertyGroup(bpy.types.PropertyGroup):
   """
@@ -2038,6 +2145,7 @@ class VIEW3D_PT_pipe_property_pannel(bpy.types.Panel):
     pipe_dimention_col.prop(pipe_prop, "pipe_inner_radius", text="inner radius (mm)")
     pipe_dimention_col.prop(pipe_prop, "pipe_thickness", text="thickness (mm)")
     pipe_dimention_col.prop(pipe_prop, "unit_dimention", text="unit length (mm)")
+    pipe_dimention_col.prop(pipe_prop, "tip_length", text="tip length (mm)")
 
     stage_col.prop(pipe_prop, "add_stage", text="add stage block")
     add_stage = getattr(pipe_prop, "add_stage")
@@ -2098,6 +2206,8 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
         # col.prop(ui_prop, "preview_pipe_thickness", text="line thickness (mm)")
       else:
         row.operator("mesh.delete_preview_connection", text="Hide Preview")
+    
+    row.operator("mesh.debug_command", text="Debug Button")
 
 
 
@@ -2278,6 +2388,7 @@ class_to_register = [
   MESH_OT_change_group_visibility,
   MESH_OT_save_current_progress,
   MESH_OT_load_saved_progress,
+  MESH_OT_debug_command,
 
   GatePropertyGroup,
   ConnectionPropertyGroup,

@@ -12,6 +12,7 @@ import importlib.util
 from math import sin, cos, acos, pi
 import numpy as np
 import bpy
+import mathutils
 
 # pipe_system_spec = importlib.util.spec_from_file_location("pipe_system.py", "/Users/lhwang/Documents/GitHub/RMG Project/Fluid-Circuit-Generator/pipe_system.py")
 # pipe_system = importlib.util.module_from_spec(pipe_system_spec)
@@ -55,6 +56,8 @@ class GateAssembly:
     # list of all connection grounps (ports that are interconnected)
     # store as (gate_name, port_name)
     self.connection_group_list = []
+    # list of bpy objects that could potentially be blocking pipe generation
+    self.obstacle_list = []
 
     # stores user related error messages
     self.error_message_list = []
@@ -83,6 +86,7 @@ class GateAssembly:
     """
     Set grid to fit gate ports
     Check if ports are in valid position
+    Get all obstacles
     Call this function before making connections
     Don't make connection if this return False
     """
@@ -102,10 +106,101 @@ class GateAssembly:
       max_real_dimention = tuple(map(max, max_real_dimention, port_coord))
 
     max_grid_dimention = tuple(map(lambda x: int(x//unit_dimention)+1, max_real_dimention))
+    self.obstacle_list = self.get_obstacle_objects()
+    obstacles_world = self.get_obstacle_coord(self.obstacle_list, max_grid_dimention, unit_dimention, pipe_dimention)
+    obstacles = list(map(lambda coord: (coord[0]//unit_dimention, coord[1]//unit_dimention, coord[2]//unit_dimention), obstacles_world))
+    print("Registering obstacles:\n", obstacles)
+    self.pipe_system.reset_grid(max_grid_dimention, pipe_dimention, unit_dimention, tip_length, obstacles)
 
-    self.pipe_system.reset_grid(max_grid_dimention, pipe_dimention, unit_dimention, tip_length)
     return is_port_valid
 
+
+
+  def get_obstacle_objects(self):
+    ingore_names = ["Test Tube", "Test Stage", "Test Tip", "Current Selection"]
+    obstacle_list = []
+    print("Current Objects:", list(bpy.data.objects))
+    for obj in bpy.data.objects:
+      if obj.name not in ingore_names and obj.gate_property.stl_file_path == "":
+        obstacle_list.append(obj)
+    print("Obstacle Object List:\n", obstacle_list)
+    return obstacle_list
+
+
+  def get_obstacle_coord(self, obstacle_list, max_grid_dimention, unit_dimention, pipe_dimention):
+    """
+    Check all coord in grid for collision
+    return coords that are covered by obstacle in world space
+    """
+    print("IN FUNC Obstacle Object List:\n", obstacle_list)
+
+    # collision_radius = unit_dimention/2 - pipe_dimention[1] # half unit - outer dimension
+    collision_radius = unit_dimention/2
+    # collision_radius = 2
+    collision_list = []
+    coord_list = []
+    for x in range(max_grid_dimention[0]+1):
+      for y in range(max_grid_dimention[1]+1):
+        for z in range(max_grid_dimention[2]+1):
+          coord = (x*unit_dimention, y*unit_dimention, z*unit_dimention)
+          coord_list.append(coord)
+    for obj in obstacle_list:
+      this_collision = self.check_coord_in_object(coord_list, obj, collision_radius)
+      collision_list.extend(this_collision)
+    return collision_list
+
+
+  def check_coord_in_object(self, coord_list, obj, dist=0):
+    """
+    Check if a list of point with given coordinates is inside or near the given object.
+    The check is reliant on vertex normals
+    Remesh is needed to clean up the model and avoid weird normals
+    return the points that collide.
+    """
+
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.duplicate()
+    remesh_obj = bpy.context.active_object
+
+    # remesh to aviod random boolean cut errors
+    modifier_name = "Remesh"
+    remesh_obj.modifiers.new(modifier_name, "REMESH")
+    remesh_obj.modifiers[modifier_name].mode = "VOXEL"
+    # remesh_obj.modifiers[modifier_name].voxel_size = max(0.1, 0.1*dist)
+    remesh_obj.modifiers[modifier_name].voxel_size = 0.1
+    bpy.ops.object.modifier_apply(modifier = modifier_name)
+
+    # remesh_obj = obj
+    check_result_list = []
+    collision_list = []
+
+    for coord in coord_list:
+      point = mathutils.Vector(coord)
+      point_local = remesh_obj.matrix_world.inverted() @ point
+
+      _, closest_local, nor_local, _ = remesh_obj.closest_point_on_mesh(point_local)
+
+      closest_world = remesh_obj.matrix_world @ closest_local
+      nor_world = remesh_obj.matrix_world.to_3x3() @ nor_local  # Ignore translation for normals
+
+      direction = closest_world - point
+      is_close = direction.length < dist
+      # is_inside = direction.dot(nor_world) > 0 and direction.length<min(obj.dimensions)/2
+      is_inside = direction.dot(nor_world) > 0
+
+      if is_close | is_inside:
+        bpy.ops.mesh.primitive_cube_add(location = coord, size=.5)
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=.1, location=closest_world)
+        print("created point: ", bpy.context.active_object.name)
+      # bpy.ops.object.delete()
+        check_result_list.append(is_close | is_inside)
+        collision_list.append(coord)
+      
+    remesh_obj.select_set(True)
+    bpy.context.view_layer.objects.active = remesh_obj
+    bpy.ops.object.delete()
+    return collision_list
 
 
   def add_connection(self, gate_port_start, gate_port_end):
@@ -558,20 +653,21 @@ class GateAssembly:
 
 
 
-
-
-
   def reset_blender(self):
     """Call this function before everything to reset blender"""
-    # delete all object (including invisible ones)
-    for obj in bpy.data.collections.data.objects:
-      bpy.data.objects.remove(obj)
+    # delete all object (including invisible ones) excluding obstacles
+    self.obstacle_list = self.get_obstacle_objects()
+    for obj in bpy.data.objects:
+      print(obj)
+      if obj not in self.obstacle_list:
+        bpy.data.objects.remove(obj)
+
     # set to object mode
     bpy.ops.mesh.primitive_cube_add()
     bpy.ops.object.mode_set(mode = "OBJECT")
     # delete cube
     bpy.ops.object.select_all(action='SELECT')
-    bpy.ops.object.delete(use_global=False)
+    bpy.data.objects.remove(bpy.context.active_object)
     # move cursor to origin
     bpy.context.scene.cursor.location = (0,0,0)
     # # scale using cursor as origin

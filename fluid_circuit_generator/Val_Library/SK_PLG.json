@@ -1,0 +1,38 @@
+
+{
+  "Name": "SK-PLG",
+  "Object Dimension": [
+    23.8,
+    40.4,
+    20.8
+  ],
+  "Port Info": {
+    "SupplyPressure": [
+      2.5,
+      -3.6,
+      0
+    ],
+    "KinkedTubePressure": [
+      2.5,
+      -11.90,
+      0
+    ],
+    "ControlPressure": [
+      2.5,
+      -20.2,
+      0
+    ],
+    "UnkinkedTubePressure": [
+      2.5,
+      -28.5,
+      0
+    ],
+    "OutputPressure": [
+      2.5,
+      -38.4,
+      0
+    ] 
+  },
+  "Connections": {
+  }
+}

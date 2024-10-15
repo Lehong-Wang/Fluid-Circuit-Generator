@@ -226,6 +226,9 @@ class Grid:
     self.node_grid = []
     self.node_grid = self.make_grid()
 
+    # store all the nodes that are ocupied by obstacles
+    # [node_list]
+    self.obsticales = []
     # store all the ground paths
     # only ground path can merge together
     # {(start_node, end_node) : [path_node_list]}
@@ -361,7 +364,11 @@ class Grid:
       this_saved_path = value[2]
       for node in this_saved_path:
         node.visited = True
-
+    
+    print("Registered node as obstacle:")
+    for node in self.obsticales:
+      node.visited = True
+      print(node.coord)
     self.cut_all_crossover()
     print("Grid Reset")
 
@@ -804,6 +811,7 @@ class Grid:
     Wrapper function used for connecting two grid coordinates
     Use this for creating connections / find paths
     """
+    self.reset_grid()
     print(f"\nConnecting Node {start_coord} and Node {end_coord} with default path")
     start_node = self.node_grid[start_coord[0]][start_coord[1]][start_coord[2]]
     end_node = self.node_grid[end_coord[0]][end_coord[1]][end_coord[2]]
@@ -866,6 +874,20 @@ class Grid:
       print(f"Error: Node {coord} is out of bound")
       return True
     return node.visited
+
+
+
+  def make_obstacle(self, coord):
+    """Helper Function"""
+    try:
+      node = self.node_grid[coord[0]][coord[1]][coord[2]]
+      self.obsticales.append(node)
+      # node.visited = True
+    except IndexError:
+      print(f"Error: Node {coord} is out of bound")
+      return False
+    return True
+
 
   # given a node, return the ground node
   def find_ground_node(self, node, dir_x, dir_y):
