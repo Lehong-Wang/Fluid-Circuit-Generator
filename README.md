@@ -2,10 +2,10 @@
 
 # Fluid Circuit Generator
 
-This prject is a Blender addon tool to help design Fluidic Networks.
+This project is a Blender addon tool to help design Fluidic Networks.
 
-The software is designed to be part of a workflow for fabrication of macro-fluidic circuits. 
-Where, instead of manually wiring logic components, designers can feed their design into the software and generate the connections among as a 3D printable fluidic network model.
+The software is designed to be part of a workflow for the fabrication of macro-fluidic circuits. 
+Where instead of manually wiring logic components, designers can feed their design into the software and generate the connections as a 3D printable fluidic network model.
 The logic components can be put onto the network to form a functional fluidic circuit. (shown below)
 
 ![](pictures/process.png)
@@ -24,14 +24,14 @@ A video tutorial for using the software can be found
 
 * Download this repository. 
   * What you need is the fluid_circuit_generator.zip file inside the repository folder. You can discard the rest.
-  * DO NOT unzip the file. Blender will automatically extract the contents when it installs addons.
+  * DO NOT unzip the file. Blender will automatically extract the contents when it installs add-ons.
 * In Blender, go to Edit -> Preferences -> Add-ons
   * This window manages the addons installed in your Blender
 * Click the install button on the top of this popup window, navigate to the fluid_circuit_generator.zip file and click Install Add-on.
-* The installed addon should be shown, enable the addon by checking the check box. By this point, you should be able to start using the Fluid Circuit Generator.
+* The installed add-on should be shown. Enable the add-on by checking the check box. By this point, you should be able to start using the Fluid Circuit Generator.
 
 ![](pictures/enable_addon.png)
-* At this point, there should be a new tab showing up on the side bar. If you don't see a side bar, press "N".
+* At this point, a new tab should appear on the sidebar. If you don't see a sidebar, press "N".
 
 ![](pictures/side_bar.png)
 
@@ -40,12 +40,12 @@ A video tutorial for using the software can be found
 
 ### Basic Usecase
 
-1. In the Main Panel, "Reset Addon" button should be pressed after each finalized assembly is generated and before you make a new one. It deletes everything.
-2. In the Add Component Panel, you can choose to add a component for your circuit. Choose what circuit component you want to add and press the "Add Object" Button.
+1. In the Main Panel, press the "Reset Addon" button after each finalized assembly is generated and before you create a new one. This deletes everything.
+2. In the Add Component Panel, you can add a component for your circuit. Select the component you want to add and press the "Add Object" Button.
     * Within the addon, we also provide a component library that is fully 3D printable with desktop FDM printers. (We use Prusa MK3S)
     * Library consists of:
-      * Mono stable val, which can be configured as AND, OR, NOT, INHIBIT logic gates. (refer to our paper)
-      * Bi stable val, which can be used as non-volitile memory.
+      * Mono stable valve can be configured as AND, OR, NOT, INHIBIT logic gates. (refer to our paper)
+      * Bi-stable valve, which can be used as non-volatile memory.
       * Free ends, which are place holders for open ends to atomosphere pressure
     * Designers can also create their own circuit components following the "Creating Custom Circuit Components" part of the mannual.
     * You can move, rotate and scale the selected object with this panel. You can also use default Blender operations to manuver the objects. There is a simple cheat sheet of basic Blender operations below.
