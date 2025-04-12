@@ -37,7 +37,7 @@ class GateAssembly:
 
   stage_height = 1
   stage_margin = .5
-  tip_offset = 0.1
+  tip_offset = 5
   unit_dimention = 1
 
 
@@ -190,9 +190,9 @@ class GateAssembly:
       is_inside = direction.dot(nor_world) > 0
 
       if is_close | is_inside:
-        bpy.ops.mesh.primitive_cube_add(location = coord, size=.5)
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=.1, location=closest_world)
-        print("created point: ", bpy.context.active_object.name)
+        # bpy.ops.mesh.primitive_cube_add(location = coord, size=.5)
+        # bpy.ops.mesh.primitive_uv_sphere_add(radius=.1, location=closest_world)
+        # print("created point: ", bpy.context.active_object.name)
       # bpy.ops.object.delete()
         check_result_list.append(is_close | is_inside)
         collision_list.append(coord)

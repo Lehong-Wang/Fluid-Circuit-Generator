@@ -1835,9 +1835,9 @@ class PipePropertyGroup(bpy.types.PropertyGroup):
   )
   # NOT enabled in UI
   tip_length: bpy.props.FloatProperty(
-    default = 0.5,
+    default = 5,
     min = 0,
-    soft_max = 2
+    soft_max = 10
   )
   unit_dimention: bpy.props.IntProperty(
     default = 9,
@@ -1948,7 +1948,7 @@ class VIEW3D_PT_add_gate_panel(bpy.types.Panel):
     select_path_row = layout.row()
 
     is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_free_end", toggle=1, text="Free End")
-    is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_logic_gate", toggle=1, text="Logic Gate")
+    is_free_end_row.prop(bpy.context.scene.ui_property, "fake_is_logic_gate", toggle=1, text="Import Components")
     select_path_row.prop(bpy.context.scene.ui_property, "fake_stl_file_path", text="Import Stl File")
 
     if bpy.context.scene.ui_property.fake_is_free_end:
@@ -1993,7 +1993,10 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
   # connection_dict = {"hi":"hello"}
 
   def draw(self, context):
+
     layout = self.layout
+    # add connection button at bottom
+    layout.operator("mesh.add_gate_connection", text="Add Connections")
 
     # draw title
     connection_box = layout.box()
@@ -2033,8 +2036,7 @@ class VIEW3D_PT_add_connection_panel(bpy.types.Panel):
         for _ in range(ui_height-1):
           middle_col.label(text="")
 
-    # add connection button at bottom
-    layout.operator("mesh.add_gate_connection", text="Add Connections")
+
 
 
 
@@ -2207,7 +2209,7 @@ class VIEW3D_PT_make_assembly_panel(bpy.types.Panel):
       else:
         row.operator("mesh.delete_preview_connection", text="Hide Preview")
     
-    row.operator("mesh.debug_command", text="Debug Button")
+    # row.operator("mesh.debug_command", text="Debug Button")
 
 
 
