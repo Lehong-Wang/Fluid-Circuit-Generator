@@ -20,7 +20,7 @@ bl_info = {
   "version": (1, 0),
   "blender": (3, 2, 0),
   "location": "SpaceBar Search -> Add-on Preferences Example",
-  "description": "This addon can help with auto generating 3D-printable fluid circuits.",
+  "description": "This STREAM addon helps with auto generating 3D-printable fluid circuits.",
   "warning": "",
   "doc_url": "https://github.com/Lehong-Wang/Fluid-Circuit-Generator",
   "tracker_url": "",
