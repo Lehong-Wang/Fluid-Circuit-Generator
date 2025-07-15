@@ -62,6 +62,10 @@ A video tutorial for using the software can be found
       * Costum tip is appended to the very top of the tubing, and offset moves the costum tip down
       * To make your own costum tip, refer to the sample costum tip in the Gate_Library folder in the zip file.
     * After you adjust the properties, press the Make Preview Tubing button to make a preview.
+
+5. Controlling fluidic circuit with obstacles.
+    * During the fluidic circuit design process, users can gain greater control over tube routing by utilizing STREAM’s obstacle avoidance feature. Any geometry added to the design prior to assembly generation is treated as an obstacle, and the routing algorithm ensures that the resulting tubing paths do not intersect with these volumes. This capability enables the co-design of structural and fluidic elements, making it possible to create mono-printed robots where both the mechanical structure and internal tubing are fabricated in a single print.
+
 5. In the Generate Assembly Panel, you check your connections and make the final module
     * Press the Preview Conneciton button to visualize the connections you made. You can still edit your connection in this step. Preview is refreshed after you hide the preview.
     * If everything looks correct, click Confirm Changes
@@ -101,11 +105,16 @@ Since the software will erase all changes after generating the final tubings, sa
 
 ### Creating Custom Circuit Components
 Logic Gates needs to have a stl file and a json file with the same name. Use the provided Circuit library as template and change values in each field.
-Remember to follow the .json file format.
+Detailed instructions are available on our paper (TODO, which will come out later this year)
 
 
 ### Fabricating our Logic Components
-The details of the 3D model, printing parameters, and assembly guide can be found in the "keep-everything" branch of this repo.
+The details of the 3D model, printing parameters, and assembly guide can be found in the "keep-everything" branch of this repo. Detailed instructions is availabe in our [Github](https://github.com/roboticmaterialsgroup/3D-printed-valve) and [paper](https://arxiv.org/abs/2312.01131).
+
+
+### Designing Monolithic Printed Robot
+One of the goals for this research is to enable automated design and fabrication of custom-built robots. This vision has recently become more attainable due to development of FDM printable monolithically pneumatic logic gates by [Conrad et al.](https://www.science.org/doi/10.1126/scirobotics.adh4060) This design enable us to print tubing together with logic elements, enabling a fluidic circuit that can work directly off the print bed with no manual labor involved. 
+* Design tip: These logic elements are intricate and typically print successfully only when placed directly on the print bed. However, STREAM automatically routes tubing beneath logic components, which can interfere with print quality. As a workaround, we recommend designing circuits with the logic elements oriented upside-down and then flipping the final design before printing. For convenience, we include a pre-flipped version of the logic gate design in our valve library as "sci_gate.stl".
 
 
 ### Debugging Guides
